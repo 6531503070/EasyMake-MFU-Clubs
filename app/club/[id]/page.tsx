@@ -299,17 +299,17 @@ export default function ClubDetailPage() {
                                 <MapPin className="w-4 h-4 text-primary" />
                                 <span>{event.location}</span>
                               </div>
-                              <div className="flex items-center gap-2">
+                              {/* <div className="flex items-center gap-2">
                                 <Users className="w-4 h-4 text-primary" />
                                 <span>
                                   {event.registeredCount}
                                   {event.capacity && `/${event.capacity}`} registered
                                 </span>
-                              </div>
+                              </div> */}
                             </div>
-                            <Button className="w-full bg-primary hover:bg-primary-dark text-background mt-4">
+                            {/* <Button className="w-full bg-primary hover:bg-primary-dark text-background mt-4">
                               Register Now
-                            </Button>
+                            </Button> */}
                           </CardContent>
                         </Card>
                       </motion.div>
