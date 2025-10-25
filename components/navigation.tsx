@@ -12,9 +12,9 @@ export function Navigation() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const navItems = [
-    { href: "/", label: "Home", labelTh: "หน้าแรก" },
-    { href: "/club", label: "Club", labelTh: "ชมรม" },
-    { href: "/activities", label: "Activities", labelTh: "กิจกรรม" },
+    { href: "/user", label: "Home", labelTh: "หน้าแรก" },
+    { href: "/user/club", label: "Club", labelTh: "ชมรม" },
+    { href: "/user/activities", label: "Activities", labelTh: "กิจกรรม" },
   ]
 
   return (
