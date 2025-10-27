@@ -1,6 +1,6 @@
 # 🧪 Sprint 2 Test Plan
 
-**Project Name:** CampHub  
+**Project Name:** ClubHub 
 **Date Created:** 21/10/2568 (October 21, 2025)  
 **Authors:**  
 - Keereemas Sribua  
@@ -108,5 +108,3 @@ These detailed test cases will guide both **manual testing efforts** and the **d
 - REQ-10: Update dynamically when new data appears.
 
 ---
-
-**End of Document**
