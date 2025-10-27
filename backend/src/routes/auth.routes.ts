@@ -22,6 +22,8 @@ router.post(
   AuthController.createClubLeader
 );
 
+router.post("/create-super-admin", AuthController.createSuperAdmin);
+
 // deactivate user (super-admin only)
 router.patch(
   "/deactivate/:userId",

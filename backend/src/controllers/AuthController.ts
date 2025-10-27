@@ -18,6 +18,22 @@ export const AuthController = {
     }
   },
 
+  createSuperAdmin: async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { email, password, secret, full_name, phone } = req.body;
+      const result = await AuthService.createSuperAdmin({
+        email,
+        password,
+        secret,
+        full_name,
+        phone,
+      });
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  },
+
   login: async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { email, password } = req.body;
@@ -47,7 +63,10 @@ export const AuthController = {
       const superAdminId = (req as any).user.id;
       const { email, citizen_id, full_name, phone } = req.body;
       const leader = await AuthService.createClubLeader(superAdminId, {
-        email, citizen_id, full_name, phone,
+        email,
+        citizen_id,
+        full_name,
+        phone,
       });
       res.json({ leader });
     } catch (err) {

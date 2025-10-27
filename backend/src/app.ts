@@ -2,12 +2,17 @@ import express from "express";
 import cors from "cors";
 import routes from "./routes/index";
 import { HttpError } from "./utils/errors";
+import swaggerRouter from "./swagger";
 
 const app = express();
 
 app.use(cors({ origin: "*" }));
 app.use(express.json());
 
+// Swagger UI at /docs
+app.use("/docs", swaggerRouter);
+
+// All API routes under /api
 app.use("/api", routes);
 
 // healthcheck
@@ -15,7 +20,7 @@ app.get("/health", (_req, res) => {
   res.json({ ok: true });
 });
 
-// error handler (last)
+// error handler
 app.use(
   (err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     console.error("[ERR]", err);
