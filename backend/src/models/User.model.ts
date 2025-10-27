@@ -14,12 +14,13 @@ const UserSchema = new Schema(
 
     google_id: { type: String },
     password_hash: { type: String },
-    citizen_id: { type: String }, // required for club-leader and for normal user signup (verify identity)
+    citizen_id: { type: String },
 
     full_name: { type: String },
     phone: { type: String },
 
     is_active: { type: Boolean, default: true },
+    is_founder_for_club_id: { type: String, default: null },
   },
   { timestamps: { createdAt: "created_at", updatedAt: "updated_at" } }
 );

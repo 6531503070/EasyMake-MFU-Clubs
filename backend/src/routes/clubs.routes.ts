@@ -6,7 +6,13 @@ import { requireRole } from "../middleware/requireRole";
 
 const router = Router();
 
-// club-leader creates club
+router.get(
+  "/",
+  authRequired,
+  requireRole("super-admin"),
+  AdminController.listAllClubs
+);
+
 router.post(
   "/",
   authRequired,
@@ -14,10 +20,8 @@ router.post(
   ClubController.createClub
 );
 
-// public info
 router.get("/:clubId", ClubController.getClubPublic);
 
-// approve & suspend (super-admin only)
 router.patch(
   "/:clubId/approve",
   authRequired,
@@ -30,6 +34,34 @@ router.patch(
   authRequired,
   requireRole("super-admin"),
   AdminController.suspendClub
+);
+
+router.patch(
+  "/:clubId/activate",
+  authRequired,
+  requireRole("super-admin"),
+  AdminController.activateClub
+);
+
+router.patch(
+  "/:clubId/update-with-leader",
+  authRequired,
+  requireRole("super-admin"),
+  AdminController.updateClubWithLeader
+);
+
+router.delete(
+  "/:clubId",
+  authRequired,
+  requireRole("super-admin"),
+  AdminController.deleteClub
+);
+
+router.post(
+  "/admin/create-club-with-leader",
+  authRequired,
+  requireRole("super-admin"),
+  AdminController.createClubWithLeader
 );
 
 export default router;

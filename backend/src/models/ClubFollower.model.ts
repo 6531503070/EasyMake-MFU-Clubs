@@ -9,8 +9,8 @@ const ClubFollowerSchema = new Schema(
     user_id: { type: String, ref: "User", required: true },
     role_at_club: {
       type: String,
-      enum: ["member", "co-leader", "staff"],
-      default: "member",
+      enum: ["co-leader", "member", "follower", "admin"],
+      required: true,
     },
   },
   { timestamps: { createdAt: "created_at", updatedAt: false } }

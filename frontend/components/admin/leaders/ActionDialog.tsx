@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 type ActionDialogProps = {
   open: boolean;
-  mode: "view" | "edit" | "suspend" | "delete" | null;
+  mode: "view" | "edit" | "suspend" | "activate" | "delete" | null;
   title: string;
   description?: string;
   confirmLabel?: string;

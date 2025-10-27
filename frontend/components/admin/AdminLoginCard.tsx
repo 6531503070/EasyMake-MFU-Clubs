@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, type Variants } from "framer-motion";
 import { ErrorAlert } from "./ErrorAlert";
+import { loginRequest } from "@/services/authService";
 
 export function AdminLoginCard() {
   const router = useRouter();
@@ -16,55 +17,42 @@ export function AdminLoginCard() {
 
   useEffect(() => {
     const cookieRole = getCookie("role");
-    if (cookieRole === "super-admin") {
-      router.replace("/admin/");
-    } else if (cookieRole === "club-leader") {
+    if (cookieRole === "super-admin" || cookieRole === "club-leader") {
       router.replace("/admin/");
     }
   }, [router]);
 
-  function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
     setError("");
 
-    // mock accounts
-    const mockAccounts = [
-      {
-        email: "leader@mfu.ac.th",
-        password: "1234567890123",
-        role: "club-leader" as const,
-      },
-      {
-        email: "admin@mfu.ac.th",
-        password: "admin123",
-        role: "super-admin" as const,
-      },
-    ];
+    try {
+      const result = await loginRequest(email, password);
 
-    const found = mockAccounts.find(
-      (acc) => acc.email === email && acc.password === password
-    );
+      if (
+        result.user.role !== "super-admin" &&
+        result.user.role !== "club-leader"
+      ) {
+        setError("You are not allowed to access admin dashboard.");
+        setSubmitting(false);
+        return;
+      }
 
-    if (!found) {
-      setError("❌ Invalid email or password");
+      window.localStorage.setItem("token", result.token);
+      window.localStorage.setItem("role", result.user.role);
+      window.localStorage.setItem("email", result.user.email);
+
+      document.cookie = `role=${result.user.role}; path=/`;
+
+      router.push("/admin/");
+    } catch (err: any) {
+      setError(err.message || "Login failed");
       setSubmitting(false);
-      return;
-    }
-
-    window.localStorage.setItem("role", found.role);
-    window.localStorage.setItem("email", found.email);
-
-    document.cookie = `role=${found.role}; path=/`;
-
-    if (found.role === "super-admin") {
-      router.push("/admin/");
-    } else if (found.role === "club-leader") {
-      router.push("/admin/");
     }
   }
 
-  // motion variants
+  // framer-motion variants
   const cardVariants: Variants = {
     hidden: { opacity: 0, scale: 0.9, y: 20 },
     show: {
@@ -121,7 +109,7 @@ export function AdminLoginCard() {
         </p>
       </motion.div>
 
-      {/* Error (component แยก) */}
+      {/* Error slot */}
       <ErrorAlert message={error} />
 
       {/* Form */}
@@ -182,7 +170,7 @@ export function AdminLoginCard() {
           />
         </div>
 
-        {/* Submit button */}
+        {/* Submit */}
         <motion.button
           type="submit"
           disabled={submitting}
