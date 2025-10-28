@@ -11,13 +11,24 @@ export function verifyJWT(token: string) {
   return jwt.verify(token, env.JWT_SECRET) as { id: string; role: string };
 }
 
-// Express middleware
 export function authRequired(req: Request, _res: Response, next: NextFunction) {
-  const header = req.headers.authorization;
-  if (!header) return next(new HttpError(401, "Missing Authorization header"));
-  const [type, token] = header.split(" ");
-  if (type !== "Bearer" || !token)
-    return next(new HttpError(401, "Invalid Authorization header"));
+  let token: string | undefined;
+
+  if (req.cookies && req.cookies.token) {
+    token = req.cookies.token;
+  } else {
+    const header = req.headers.authorization;
+    if (header) {
+      const [type, raw] = header.split(" ");
+      if (type === "Bearer" && raw) {
+        token = raw;
+      }
+    }
+  }
+
+  if (!token) {
+    return next(new HttpError(401, "Unauthorized"));
+  }
 
   try {
     const decoded = verifyJWT(token);

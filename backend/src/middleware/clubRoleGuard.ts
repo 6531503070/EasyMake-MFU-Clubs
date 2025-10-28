@@ -1,28 +1,41 @@
-// ensure caller is leader/co-leader/staff of that club OR super-admin
-import { NextFunction, Request, Response } from "express";
-import { HttpError } from "../utils/errors";
-import { ClubFollowerModel } from "../models/ClubFollower.model";
+import { Request, Response, NextFunction } from "express";
 import { ClubModel } from "../models/Club.model";
+import { ClubFollowerModel } from "../models/ClubFollower.model";
 
-export async function requireClubStaff(req: Request, _res: Response, next: NextFunction) {
-  const { clubId } = req.params;
-  const current = (req as any).user;
-  if (!current) return next(new HttpError(401, "Auth required"));
+export async function requireClubStaff(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const userId = (req as any).user?.id;
+    const { clubId } = req.params;
 
-  // super-admin always OK
-  if (current.role === "super-admin") return next();
+    if (!userId) {
+      return res.status(401).json({ message: "unauthenticated" });
+    }
 
-  const club = await ClubModel.findById(clubId);
-  if (!club) return next(new HttpError(404, "Club not found"));
+    const club = await ClubModel.findById(clubId);
+    if (!club) {
+      return res.status(404).json({ message: "club not found" });
+    }
 
-  if (club.leader_user_id === current.id) return next();
+    if (club.leader_user_id === userId) {
+      return next();
+    }
 
-  const rel = await ClubFollowerModel.findOne({
-    club_id: clubId,
-    user_id: current.id,
-    role_at_club: { $in: ["co-leader", "staff"] },
-  });
+    const rel = await ClubFollowerModel.findOne({
+      club_id: clubId,
+      user_id: userId,
+      role_at_club: { $in: ["co-leader"] },
+    }).lean();
 
-  if (!rel) return next(new HttpError(403, "Not allowed for this club"));
-  next();
+    if (!rel) {
+      return res.status(403).json({ message: "not club staff" });
+    }
+
+    next();
+  } catch (err) {
+    next(err);
+  }
 }

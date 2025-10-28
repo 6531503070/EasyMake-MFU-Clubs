@@ -4,10 +4,6 @@ import { HttpError } from "../utils/errors";
 import { signJWT } from "../middleware/auth";
 import { env } from "../configs/env";
 
-/**
- * Public registration for normal users only.
- * role is always "user".
- */
 async function registerUserNormal(data: {
   email: string;
   password: string;
@@ -19,7 +15,6 @@ async function registerUserNormal(data: {
     throw new HttpError(400, "email and password required");
   }
 
-  // you can decide if citizen_id is required for user
   if (!data.citizen_id) {
     throw new HttpError(400, "citizen_id required for user role");
   }
@@ -31,7 +26,7 @@ async function registerUserNormal(data: {
 
   const user = await UserModel.create({
     email: data.email,
-    role: "user", // <- fixed
+    role: "user",
     google_id: null,
     password_hash: pwHash,
     citizen_id: data.citizen_id || "",
@@ -44,10 +39,6 @@ async function registerUserNormal(data: {
   return { user, token };
 }
 
-/**
- * One-time / protected creation of a super-admin.
- * This is NOT public. We'll protect it in controller/route.
- */
 async function createSuperAdmin(data: {
   email: string;
   password: string;
@@ -89,9 +80,6 @@ async function createSuperAdmin(data: {
   return { user, token };
 }
 
-/**
- * Login
- */
 async function login(email: string, password: string) {
   const user = await UserModel.findOne({ email });
   if (!user) throw new HttpError(401, "Invalid credentials");
@@ -106,9 +94,6 @@ async function login(email: string, password: string) {
   return { user, token };
 }
 
-/**
- * Google auth
- */
 async function registerOrAttachGoogle(data: {
   email: string;
   google_id: string;
@@ -141,9 +126,6 @@ async function registerOrAttachGoogle(data: {
   return { user, token };
 }
 
-/**
- * super-admin can create club-leader
- */
 async function createClubLeader(
   superAdminId: string,
   data: {

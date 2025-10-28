@@ -10,7 +10,7 @@ const router = Router();
 router.post(
   "/clubs/:clubId/activities",
   authRequired,
-  requireRole("club-leader", "super-admin", "user"),
+  requireRole("club-leader", "co-leader", "super-admin"),
   requireClubStaff,
   ActivityController.createActivity
 );
@@ -19,24 +19,32 @@ router.post(
 router.patch(
   "/activities/:id/status",
   authRequired,
-  requireRole("club-leader", "super-admin", "user"),
+  requireRole("club-leader", "co-leader", "super-admin"),
   ActivityController.updateStatus
 );
 
-// join activity (any logged-in user)
+// register to activity
 router.post(
   "/activities/:id/register",
   authRequired,
-  requireRole("user", "club-leader", "super-admin"),
+  requireRole("user", "club-leader", "co-leader", "super-admin"),
   ActivityController.registerToActivity
 );
 
-// check-in user (staff/leader/admin)
+// check-in user
 router.post(
   "/activities/checkin/:regId",
   authRequired,
-  requireRole("club-leader", "super-admin", "user"),
+  requireRole("club-leader", "co-leader", "super-admin"),
   ActivityController.checkInUser
+);
+
+// manage single activity view
+router.get(
+  "/activities/:id/manage",
+  authRequired,
+  requireRole("club-leader", "co-leader", "super-admin"),
+  ActivityController.getActivityManageView
 );
 
 export default router;

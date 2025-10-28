@@ -6,25 +6,31 @@ import { requireClubStaff } from "../middleware/clubRoleGuard";
 
 const router = Router();
 
-// create post in club
+// create post
 router.post(
   "/clubs/:clubId/posts",
   authRequired,
-  requireRole("club-leader", "super-admin", "user"),
+  requireRole("club-leader", "co-leader", "super-admin"),
   requireClubStaff,
   PostController.createPost
 );
 
-// list posts public
-router.get(
-  "/clubs/:clubId/posts",
-  PostController.listPostsPublic
+// public list
+router.get("/clubs/:clubId/posts", PostController.listPostsPublic);
+
+// update post
+router.patch(
+  "/posts/:postId",
+  authRequired,
+  requireRole("club-leader", "co-leader", "super-admin"),
+  PostController.updatePost
 );
 
-// delete/soft delete
+// delete post
 router.delete(
   "/posts/:postId",
   authRequired,
+  requireRole("club-leader", "co-leader", "super-admin"),
   PostController.softDeletePost
 );
 

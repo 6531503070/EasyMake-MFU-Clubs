@@ -3,10 +3,13 @@ import cors from "cors";
 import routes from "./routes/index";
 import { HttpError } from "./utils/errors";
 import swaggerRouter from "./swagger";
+import cookieParser from "cookie-parser";
+import { corsMiddleware } from "./middleware/cors";
 
 const app = express();
 
-app.use(cors({ origin: "*" }));
+app.use(corsMiddleware);
+app.use(cookieParser());
 app.use(express.json());
 
 // Swagger UI at /docs

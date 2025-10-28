@@ -27,7 +27,9 @@ const ClubSchema = new Schema(
     tagline: { type: String },
     description: { type: String },
     contact_channels: { type: [ContactChannelSchema], default: [] },
-    cover_image_url: { type: String },
+    cover_image_url: { type: String, default: null },
+    cover_image_mime: { type: String, default: null },
+    cover_image_file_id: { type: String, default: null },
 
     min_members: { type: Number, required: true, default: 5 },
     status: {

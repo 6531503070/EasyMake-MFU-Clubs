@@ -1,12 +1,11 @@
 import { BASE_URL } from "./http";
 
-
 export type LoginSuccessResponse = {
   token: string;
   user: {
     id: string;
     email: string;
-    role: "super-admin" | "club-leader" | "user";
+    role: "super-admin" | "club-leader" | "co-leader" | "user";
     full_name?: string;
     is_active: boolean;
   };
@@ -18,6 +17,7 @@ export async function loginRequest(email: string, password: string) {
     headers: {
       "Content-Type": "application/json",
     },
+    credentials: "include",
     body: JSON.stringify({ email, password }),
   });
 
@@ -28,9 +28,7 @@ export async function loginRequest(email: string, password: string) {
       if (data && data.message) {
         message = data.message;
       }
-    } catch {
-      // ignore parse fail
-    }
+    } catch {}
     throw new Error(message);
   }
 

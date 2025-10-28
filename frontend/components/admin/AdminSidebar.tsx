@@ -27,8 +27,16 @@ export function AdminSidebar() {
   const [email, setEmail] = useState<string | null>(null);
 
   useEffect(() => {
-    const storedEmail = localStorage.getItem("email");
-    setEmail(storedEmail);
+    function getCookie(name: string): string | null {
+      if (typeof document === "undefined") return null;
+      const match = document.cookie.match(
+        new RegExp("(^| )" + name + "=([^;]+)")
+      );
+      return match ? decodeURIComponent(match[2]) : null;
+    }
+
+    const cookieEmail = getCookie("email");
+    setEmail(cookieEmail);
   }, []);
 
   function handleLogout() {
@@ -52,14 +60,8 @@ export function AdminSidebar() {
     },
   };
 
-  const itemVariants = {
-    hidden: { x: -20, opacity: 0 },
-    visible: {
-      x: 0,
-      opacity: 1,
-      transition: { type: "spring" as const, stiffness: 120, damping: 15 },
-    },
-  };
+  // helper: คนกลุ่ม "club admin" = club-leader หรือ co-leader
+  const isClubAdmin = role === "club-leader" || role === "co-leader";
 
   return (
     <motion.aside
@@ -106,7 +108,7 @@ export function AdminSidebar() {
           isActive={pathname === "/admin"}
         />
 
-        {role === "club-leader" && (
+        {isClubAdmin && (
           <>
             <SectionLabel text="My Club" />
             <NavItem
@@ -192,7 +194,11 @@ export function AdminSidebar() {
           </motion.div>
           <div className="flex flex-col">
             <span className="text-sm font-medium text-gray-900">
-              {role === "super-admin" ? "Super Admin" : "Club Leader"}
+              {role === "super-admin"
+                ? "Super Admin"
+                : role === "co-leader"
+                ? "Co-Leader"
+                : "Club Leader"}
             </span>
             <span className="text-xs text-gray-500 truncate max-w-[160px]">
               {email || "—"}
@@ -241,7 +247,6 @@ function NavItem({
             : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
         )}
       >
-        {/* Active indicator */}
         <AnimatePresence>
           {isActive && (
             <motion.div
@@ -254,7 +259,6 @@ function NavItem({
           )}
         </AnimatePresence>
 
-        {/* Hover effect */}
         <motion.div
           className="absolute inset-0 bg-gradient-to-r from-blue-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
           initial={false}
@@ -267,9 +271,9 @@ function NavItem({
         >
           <Icon className="w-4 h-4" />
         </motion.div>
+
         <span className="relative z-10">{label}</span>
 
-        {/* Arrow indicator on hover */}
         <motion.div
           initial={{ opacity: 0, x: -10 }}
           whileHover={{ opacity: 1, x: 0 }}

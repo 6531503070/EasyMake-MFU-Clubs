@@ -1,11 +1,39 @@
-// services/ClubService.ts
 import { ClubModel } from "../models/Club.model";
 import { ClubFollowerModel } from "../models/ClubFollower.model";
 import { UserModel } from "../models/User.model";
+import { ActivityModel } from "../models/Activity.model";
+import { ActivityRegistrationModel } from "../models/ActivityRegistration.model";
+import { ClubPostModel } from "../models/ClubPost.model";
 import { hashPassword } from "../utils/crypto";
 import { HttpError } from "../utils/errors";
 import { AuditLogService } from "./AuditLogService";
 import { NotificationService } from "./NotificationService";
+
+// อนุญาตก็ต่อเมื่อ:
+// - user เป็น leader ของ club (club.leader_user_id === userId)
+// - หรือ user ถูกบันทึกใน ClubFollowerModel.role_at_club === "co-leader"
+async function assertIsClubStaff(userId: string, clubId: string) {
+  const club = await ClubModel.findById(clubId);
+  if (!club) throw new HttpError(404, "Club not found");
+
+  if (club.leader_user_id === userId) {
+    return club;
+  }
+
+  const rel = await ClubFollowerModel.findOne({
+    club_id: clubId,
+    user_id: userId,
+    role_at_club: { $in: ["co-leader"] },
+  });
+
+  if (!rel) {
+    throw new HttpError(403, "Not allowed for this club");
+  }
+
+  return club;
+}
+
+// ============= BASIC CLUB CREATION / PUBLIC FETCH =============
 
 async function createClub(
   leaderUserId: string,
@@ -31,7 +59,7 @@ async function createClub(
     leader_user_id: leaderUserId,
     approved_by: null,
     approved_at: null,
-    founding_members: [], // self-create flow ยังไม่บังคับ 5 founding members
+    founding_members: [],
   });
 
   await ClubFollowerModel.create({
@@ -49,6 +77,138 @@ async function getClubPublic(clubId: string) {
   return club;
 }
 
+// ============= LEADER/CO-LEADER SELF-EDIT PROFILE =============
+
+async function updateClubProfileByLeader(
+  requesterUserId: string,
+  clubId: string,
+  data: {
+    name: string;
+    description: string;
+    contact_channels: { platform: string; handle: string }[];
+    cover_image_url?: string;
+  }
+) {
+  const club = await assertIsClubStaff(requesterUserId, clubId);
+
+  if (!data.name?.trim()) {
+    throw new HttpError(400, "name required");
+  }
+
+  club.name = data.name;
+  club.description = data.description || "";
+
+  const safeChannels = Array.isArray(data.contact_channels)
+    ? data.contact_channels.map((c) => ({
+        platform: c.platform || "",
+        handle: c.handle || "",
+      }))
+    : [];
+
+  club.set("contact_channels", safeChannels as any);
+
+  if (typeof data.cover_image_url === "string") {
+    club.cover_image_url = data.cover_image_url;
+  }
+
+  await club.save();
+  return club;
+}
+
+// ============= DASHBOARD VIEWS =============
+
+async function listClubMembers(requesterUserId: string, clubId: string) {
+  await assertIsClubStaff(requesterUserId, clubId);
+
+  const followers = await ClubFollowerModel.find(
+    { club_id: clubId },
+    "user_id role_at_club created_at"
+  ).lean();
+
+  const uniqueIds = [...new Set(followers.map((f) => f.user_id))];
+
+  const users = await UserModel.find(
+    { _id: { $in: uniqueIds } },
+    "_id full_name email role"
+  ).lean();
+
+  const userMap = new Map<string, any>();
+  for (const u of users) {
+    userMap.set(String(u._id), u);
+  }
+
+  return followers.map((f) => ({
+    user_id: f.user_id,
+    name: userMap.get(String(f.user_id))?.full_name || "",
+    email: userMap.get(String(f.user_id))?.email || "",
+    // role_at_system = role ใน UserModel เช่น club-leader / co-leader / user
+    role_at_system: userMap.get(String(f.user_id))?.role || "",
+    // role_at_club = co-leader (จาก ClubFollowerModel)
+    role_at_club: f.role_at_club,
+    joinedAt: f.created_at,
+  }));
+}
+
+async function listClubActivities(requesterUserId: string, clubId: string) {
+  await assertIsClubStaff(requesterUserId, clubId);
+
+  const acts = await ActivityModel.find(
+    { club_id: clubId },
+    "_id title location start_time end_time capacity status"
+  )
+    .sort({ start_time: 1 })
+    .lean();
+
+  const actIds = acts.map((a) => a._id);
+
+  const regsAgg = await ActivityRegistrationModel.aggregate([
+    { $match: { activity_id: { $in: actIds } } },
+    {
+      $group: {
+        _id: "$activity_id",
+        count: { $sum: 1 },
+      },
+    },
+  ]);
+
+  const regMap = new Map<string, number>();
+  for (const r of regsAgg) {
+    regMap.set(String(r._id), r.count);
+  }
+
+  return acts.map((a) => ({
+    id: a._id,
+    title: a.title,
+    location: a.location,
+    status: a.status,
+    capacity: a.capacity,
+    start_time: a.start_time,
+    end_time: a.end_time,
+    registered: regMap.get(String(a._id)) || 0,
+  }));
+}
+
+async function listPostsForClubStaff(requesterUserId: string, clubId: string) {
+  await assertIsClubStaff(requesterUserId, clubId);
+
+  const posts = await ClubPostModel.find(
+    { club_id: clubId, is_deleted: false },
+    "_id title subtitle published updated_at"
+  )
+    .sort({ updated_at: -1 })
+    .lean();
+
+  return posts.map((p) => ({
+    id: p._id,
+    title: p.title,
+    subtitle: p.subtitle,
+    published: p.published,
+    updatedAt: p.updated_at,
+  }));
+}
+
+// ============= SUPER ADMIN OPS =============
+
 async function approveClub(superAdminId: string, clubId: string) {
   const club = await ClubModel.findById(clubId);
   if (!club) throw new HttpError(404, "Club not found");
@@ -58,9 +218,9 @@ async function approveClub(superAdminId: string, clubId: string) {
   await club.save();
 
   await AuditLogService.log(superAdminId, "APPROVE_CLUB", "club", clubId, {});
-
   return club;
 }
+
 async function activateClub(superAdminId: string, clubId: string) {
   const club = await ClubModel.findById(clubId);
   if (!club) throw new HttpError(404, "Club not found");
@@ -69,7 +229,6 @@ async function activateClub(superAdminId: string, clubId: string) {
   await club.save();
 
   await AuditLogService.log(superAdminId, "ACTIVATE_CLUB", "club", clubId, {});
-
   await NotificationService.broadcastToFollowers(clubId, {
     type: "club_activated",
     title: `Club ${club.name} has been re-activated`,
@@ -79,20 +238,15 @@ async function activateClub(superAdminId: string, clubId: string) {
 
   return club;
 }
-async function suspendClub(
-  superAdminId: string,
-  clubId: string,
-  reason: string
-) {
+
+async function suspendClub(superAdminId: string, clubId: string, reason: string) {
   const club = await ClubModel.findById(clubId);
   if (!club) throw new HttpError(404, "Club not found");
 
   club.status = "suspended";
   await club.save();
 
-  await AuditLogService.log(superAdminId, "SUSPEND_CLUB", "club", clubId, {
-    reason,
-  });
+  await AuditLogService.log(superAdminId, "SUSPEND_CLUB", "club", clubId, { reason });
 
   await NotificationService.broadcastToFollowers(clubId, {
     type: "club_suspended",
@@ -136,11 +290,8 @@ async function listAllClubs() {
     .sort({ created_at: -1 })
     .lean();
 
-  // enrich leader info for admin table/view
-  // -> join User on leader_user_id so frontend can show in dialog view
-  const leaderIds = [
-    ...new Set(clubs.map((c) => c.leader_user_id).filter(Boolean)),
-  ];
+  const leaderIds = [...new Set(clubs.map((c) => c.leader_user_id).filter(Boolean))];
+
   const leaders = await UserModel.find(
     { _id: { $in: leaderIds } },
     "_id full_name email citizen_id"
@@ -148,11 +299,11 @@ async function listAllClubs() {
 
   const leaderMap = new Map<string, any>();
   for (const u of leaders) {
-    leaderMap.set(u._id, u);
+    leaderMap.set(String(u._id), u);
   }
 
   const hydrated = clubs.map((c) => {
-    const leader = leaderMap.get(c.leader_user_id);
+    const leader = leaderMap.get(String(c.leader_user_id));
     return {
       ...c,
       leader_full_name: leader?.full_name || "",
@@ -165,6 +316,7 @@ async function listAllClubs() {
   return hydrated;
 }
 
+// super-admin creates club + leader + co-leaders
 async function createClubWithLeader(
   superAdminId: string,
   data: {
@@ -186,7 +338,6 @@ async function createClubWithLeader(
     throw new HttpError(400, "at least 5 members required");
 
   let leaderUser = await UserModel.findOne({ email: data.leaderEmail });
-
   let leaderWasJustCreated = false;
 
   if (leaderUser) {
@@ -233,7 +384,7 @@ async function createClubWithLeader(
       const pwHash = await hashPassword(m.citizenId);
       memberUser = await UserModel.create({
         email: m.email,
-        role: "club-leader",
+        role: "co-leader",
         password_hash: pwHash,
         citizen_id: m.citizenId,
         full_name: m.name,
@@ -243,8 +394,8 @@ async function createClubWithLeader(
       });
       memberJustCreated = true;
     } else {
-      if (memberUser.role !== "club-leader") {
-        memberUser.role = "club-leader";
+      if (memberUser.role !== "club-leader" && memberUser.role !== "co-leader") {
+        memberUser.role = "co-leader";
         await memberUser.save();
       }
     }
@@ -266,10 +417,9 @@ async function createClubWithLeader(
     cover_image_url: "",
     min_members: 5,
     status: "active",
-    leader_user_id: leaderUser._id,
+    leader_user_id: (leaderUser as any)._id,
     approved_by: superAdminId,
     approved_at: new Date(),
-
     founding_members: foundingSnapshots.map((snap) => ({
       user_id: snap.user_id,
       full_name: snap.full_name,
@@ -280,7 +430,7 @@ async function createClubWithLeader(
 
   await ClubFollowerModel.create({
     club_id: club._id,
-    user_id: leaderUser._id,
+    user_id: (leaderUser as any)._id,
     role_at_club: "co-leader",
   });
 
@@ -294,8 +444,8 @@ async function createClubWithLeader(
   }
 
   if (leaderWasJustCreated) {
-    leaderUser.is_founder_for_club_id = club._id;
-    await leaderUser.save();
+    (leaderUser as any).is_founder_for_club_id = club._id;
+    await (leaderUser as any).save();
   }
 
   for (const snap of foundingSnapshots) {
@@ -320,9 +470,9 @@ async function createClubWithLeader(
   return {
     club,
     leader: {
-      _id: leaderUser._id,
-      full_name: leaderUser.full_name,
-      email: leaderUser.email,
+      _id: (leaderUser as any)._id,
+      full_name: (leaderUser as any).full_name,
+      email: (leaderUser as any).email,
     },
     members: foundingSnapshots.map((snap) => ({
       user_id: snap.user_id,
@@ -366,9 +516,6 @@ async function updateClubWithLeader(
   const club = await ClubModel.findById(clubId);
   if (!club) throw new HttpError(404, "Club not found");
 
-  // -----------------------
-  // 1. sync leader account
-  // -----------------------
   const leaderUser = await UserModel.findById(club.leader_user_id);
   if (!leaderUser) {
     throw new HttpError(500, "leader user missing");
@@ -377,18 +524,14 @@ async function updateClubWithLeader(
   leaderUser.full_name = data.leaderName;
   leaderUser.email = data.leaderEmail;
   leaderUser.citizen_id = data.leaderCitizenId;
-  // leaderUser.password_hash = await hashPassword(data.leaderCitizenId);
   if (leaderUser.role !== "club-leader") {
     leaderUser.role = "club-leader";
   }
   if (!leaderUser.is_founder_for_club_id) {
-    leaderUser.is_founder_for_club_id = club._id;
+    (leaderUser as any).is_founder_for_club_id = club._id;
   }
   await leaderUser.save();
 
-  // -----------------------
-  // 2. sync founding members
-  // -----------------------
   const updatedFoundingSnapshots: {
     user_id?: string;
     full_name: string;
@@ -398,24 +541,24 @@ async function updateClubWithLeader(
 
   for (let i = 0; i < data.members.length; i++) {
     const incoming = data.members[i];
-    const oldSnap = (club.founding_members as any[])[i]; // old snapshot at same index
+    const oldSnap = (club.founding_members as any[])[i];
 
-    let memberUser = null;
+    let memberUser: any = null;
 
     if (oldSnap && oldSnap.user_id) {
       memberUser = await UserModel.findById(oldSnap.user_id);
     }
+
     if (!memberUser && incoming.email) {
       memberUser = await UserModel.findOne({ email: incoming.email });
     }
 
     if (!memberUser) {
-      // new person -> create user with role club-leader
       const pwHash = await hashPassword(incoming.citizenId);
 
       memberUser = await UserModel.create({
         email: incoming.email,
-        role: "club-leader",
+        role: "co-leader",
         password_hash: pwHash,
         citizen_id: incoming.citizenId,
         full_name: incoming.name,
@@ -424,12 +567,14 @@ async function updateClubWithLeader(
         is_founder_for_club_id: club._id ?? null,
       });
     } else {
-      // update existing user's info
       memberUser.full_name = incoming.name;
       memberUser.email = incoming.email;
       memberUser.citizen_id = incoming.citizenId;
-      if (memberUser.role !== "club-leader") {
-        memberUser.role = "club-leader";
+      if (
+        memberUser.role !== "club-leader" &&
+        memberUser.role !== "co-leader"
+      ) {
+        memberUser.role = "co-leader";
       }
       if (!memberUser.is_founder_for_club_id) {
         memberUser.is_founder_for_club_id = club._id;
@@ -437,7 +582,6 @@ async function updateClubWithLeader(
       await memberUser.save();
     }
 
-    // make sure they follow club as co-leader
     const alreadyFollow = await ClubFollowerModel.findOne({
       club_id: club._id,
       user_id: memberUser._id,
@@ -458,11 +602,7 @@ async function updateClubWithLeader(
     });
   }
 
-  // -----------------------
-  // 3. update club fields
-  // -----------------------
   club.name = data.clubName;
-
   club.set(
     "founding_members",
     updatedFoundingSnapshots.map((snap) => ({
@@ -470,14 +610,11 @@ async function updateClubWithLeader(
       full_name: snap.full_name,
       email: snap.email,
       citizen_id: snap.citizen_id,
-    }))
+    })) as any
   );
 
   await club.save();
 
-  // -----------------------
-  // 4. audit
-  // -----------------------
   await AuditLogService.log(superAdminId, "UPDATE_CLUB", "club", clubId, {
     member_count: data.members.length,
   });
@@ -488,11 +625,15 @@ async function updateClubWithLeader(
 export const ClubService = {
   createClub,
   getClubPublic,
+  updateClubProfileByLeader,
+  listClubMembers,
+  listClubActivities,
+  listPostsForClubStaff,
   approveClub,
+  activateClub,
   suspendClub,
   deleteClub,
   listAllClubs,
   createClubWithLeader,
-  activateClub,
   updateClubWithLeader,
 };
