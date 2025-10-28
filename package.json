@@ -1,0 +1,23 @@
+{
+  "name": "easymake-mfu-clubs",
+  "version": "1.0.0",
+  "description": "A modern, responsive web application for Mae Fah Luang University student clubs and activities. Built with Next.js, TypeScript, and Framer Motion.",
+  "main": "index.js",
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/6531503070/EasyMake-MFU-Clubs.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/6531503070/EasyMake-MFU-Clubs/issues"
+  },
+  "homepage": "https://github.com/6531503070/EasyMake-MFU-Clubs#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.56.1",
+    "@types/node": "^24.9.1"
+  }
+}
