@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test('test', async ({ page }) => {
+test('go-to-use-portal', async ({ page }) => {
   await page.goto('http://localhost:3000/');
   
   await page.getByRole('link', { name: 'User Portal' }).click();
