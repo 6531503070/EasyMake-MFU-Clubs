@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion, type Variants } from "framer-motion";
+import { registerClubWithLeader } from "@/services/clubsService";
 
 type MemberInput = {
   name: string;
@@ -26,8 +27,18 @@ const itemVariants: Variants = {
   },
 };
 
-export function ClubRegistrationForm() {
-  // state สมาชิกขั้นต่ำ 5
+type Props = {
+  onCreated: () => void;
+};
+
+export function ClubRegistrationForm({ onCreated }: Props) {
+  // club / leader info state
+  const [clubName, setClubName] = useState("");
+  const [leaderName, setLeaderName] = useState("");
+  const [leaderEmail, setLeaderEmail] = useState("");
+  const [leaderCitizenId, setLeaderCitizenId] = useState("");
+
+  // founding members (>=5)
   const [members, setMembers] = useState<MemberInput[]>([
     { name: "", email: "", citizenId: "" },
     { name: "", email: "", citizenId: "" },
@@ -35,6 +46,40 @@ export function ClubRegistrationForm() {
     { name: "", email: "", citizenId: "" },
     { name: "", email: "", citizenId: "" },
   ]);
+
+  // ui feedback
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
+
+  // ---------- VALIDATION ----------
+  // กฎ:
+  // - ช่อง club / leader ทุกช่องต้องไม่ว่าง
+  // - ต้องมีสมาชิก >=5
+  // - ทุกแถวสมาชิกต้องกรอกครบทุกช่อง
+  const isFormValid = useMemo(() => {
+    if (
+      !clubName.trim() ||
+      !leaderName.trim() ||
+      !leaderEmail.trim() ||
+      !leaderCitizenId.trim()
+    ) {
+      return false;
+    }
+
+    if (members.length < 5) return false;
+
+    for (const m of members) {
+      if (
+        !m.name.trim() ||
+        !m.email.trim() ||
+        !m.citizenId.trim()
+      ) {
+        return false;
+      }
+    }
+    return true;
+  }, [clubName, leaderName, leaderEmail, leaderCitizenId, members]);
 
   function updateMember(
     idx: number,
@@ -59,9 +104,55 @@ export function ClubRegistrationForm() {
     setMembers((prev) => prev.filter((_, i) => i !== idx));
   }
 
-  function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    console.log("Submit new club + leader + members", { members });
+
+    // กันกดย้ำ
+    if (submitting) return;
+
+    // กัน submit ตรงๆ ผ่าน enter โดยที่ invalid
+    if (!isFormValid) {
+      setErrorMsg(
+        "Please complete all required fields (club info, leader info, and at least 5 fully-filled members)."
+      );
+      return;
+    }
+
+    setSubmitting(true);
+    setErrorMsg("");
+    setSuccessMsg("");
+
+    try {
+      await registerClubWithLeader({
+        clubName,
+        leaderName,
+        leaderEmail,
+        leaderCitizenId,
+        members,
+      });
+
+      setSuccessMsg("Club registered successfully.");
+
+      // reset form state
+      setClubName("");
+      setLeaderName("");
+      setLeaderEmail("");
+      setLeaderCitizenId("");
+      setMembers([
+        { name: "", email: "", citizenId: "" },
+        { name: "", email: "", citizenId: "" },
+        { name: "", email: "", citizenId: "" },
+        { name: "", email: "", citizenId: "" },
+        { name: "", email: "", citizenId: "" },
+      ]);
+
+      // refresh ตารางใน parent
+      onCreated();
+    } catch (err: any) {
+      setErrorMsg(err.message || "Failed to register club.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -72,6 +163,19 @@ export function ClubRegistrationForm() {
       animate="show"
       className="w-full max-w-5xl space-y-8 border border-gray-200 rounded-xl bg-white shadow-[0_10px_50px_-10px_rgba(0,0,0,0.08)] p-6 md:p-8"
     >
+      {(errorMsg || successMsg) && (
+        <motion.div
+          variants={itemVariants}
+          className={`text-sm rounded-md px-3 py-2 ${
+            errorMsg
+              ? "bg-red-50 text-red-700 border border-red-200"
+              : "bg-green-50 text-green-700 border border-green-200"
+          }`}
+        >
+          {errorMsg || successMsg}
+        </motion.div>
+      )}
+
       {/* Club / Leader Info */}
       <motion.div variants={itemVariants} className="space-y-4 text-sm">
         <div className="text-sm font-semibold text-gray-800">
@@ -79,7 +183,6 @@ export function ClubRegistrationForm() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-          {/* Club Name */}
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">
               Club Name
@@ -88,10 +191,12 @@ export function ClubRegistrationForm() {
               className="w-full rounded-md border border-gray-300 px-3 py-2"
               placeholder="e.g. Laced of ART"
               required
+              value={clubName}
+              onChange={(e) => setClubName(e.target.value)}
+              disabled={submitting}
             />
           </div>
 
-          {/* Leader Full Name */}
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">
               Leader Full Name
@@ -100,10 +205,12 @@ export function ClubRegistrationForm() {
               className="w-full rounded-md border border-gray-300 px-3 py-2"
               placeholder="Thanakorn Th."
               required
+              value={leaderName}
+              onChange={(e) => setLeaderName(e.target.value)}
+              disabled={submitting}
             />
           </div>
 
-          {/* Leader Email (login) */}
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">
               Leader Email (login)
@@ -113,10 +220,12 @@ export function ClubRegistrationForm() {
               className="w-full rounded-md border border-gray-300 px-3 py-2"
               placeholder="leader@mfu.ac.th"
               required
+              value={leaderEmail}
+              onChange={(e) => setLeaderEmail(e.target.value)}
+              disabled={submitting}
             />
           </div>
 
-          {/* Leader Citizen ID */}
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">
               Leader Citizen ID
@@ -125,6 +234,9 @@ export function ClubRegistrationForm() {
               className="w-full rounded-md border border-gray-300 px-3 py-2"
               placeholder="13-digit"
               required
+              value={leaderCitizenId}
+              onChange={(e) => setLeaderCitizenId(e.target.value)}
+              disabled={submitting}
             />
             <p className="text-[10px] text-gray-500 mt-1">
               Used to generate the initial password hash.
@@ -149,7 +261,8 @@ export function ClubRegistrationForm() {
           <button
             type="button"
             onClick={addMemberRow}
-            className="px-2.5 py-1.5 text-[12px] rounded-md bg-gray-900 text-white hover:bg-gray-800"
+            disabled={submitting}
+            className="px-2.5 py-1.5 text-[12px] rounded-md bg-gray-900 text-white hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             + Add Member
           </button>
@@ -170,7 +283,6 @@ export function ClubRegistrationForm() {
                 border border-gray-200 rounded-md p-3 bg-gray-50
               "
             >
-              {/* Full Name */}
               <div>
                 <label className="block text-[11px] font-medium text-gray-600 mb-1">
                   Full Name
@@ -182,10 +294,10 @@ export function ClubRegistrationForm() {
                   onChange={(e) =>
                     updateMember(idx, "name", e.target.value)
                   }
+                  disabled={submitting}
                 />
               </div>
 
-              {/* Email */}
               <div>
                 <label className="block text-[11px] font-medium text-gray-600 mb-1">
                   Email
@@ -198,10 +310,10 @@ export function ClubRegistrationForm() {
                   onChange={(e) =>
                     updateMember(idx, "email", e.target.value)
                   }
+                  disabled={submitting}
                 />
               </div>
 
-              {/* Citizen ID */}
               <div>
                 <label className="block text-[11px] font-medium text-gray-600 mb-1">
                   Citizen ID
@@ -213,14 +325,14 @@ export function ClubRegistrationForm() {
                   onChange={(e) =>
                     updateMember(idx, "citizenId", e.target.value)
                   }
+                  disabled={submitting}
                 />
               </div>
 
-              {/* Remove Button */}
               <div className="flex items-end">
                 <button
                   type="button"
-                  disabled={members.length <= 5}
+                  disabled={members.length <= 5 || submitting}
                   onClick={() => removeMemberRow(idx)}
                   className="
                     text-[12px] text-red-600 hover:text-red-700
@@ -239,9 +351,10 @@ export function ClubRegistrationForm() {
       <motion.div variants={itemVariants}>
         <button
           type="submit"
-          className="px-4 py-2 text-sm rounded-md bg-gray-900 text-white hover:bg-gray-800 active:scale-[0.99] transition-all"
+          disabled={submitting || !isFormValid}
+          className="px-4 py-2 text-sm rounded-md bg-gray-900 text-white hover:bg-gray-800 active:scale-[0.99] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Create Club
+          {submitting ? "Creating..." : "Create Club"}
         </button>
       </motion.div>
     </motion.form>

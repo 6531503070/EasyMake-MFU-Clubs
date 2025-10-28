@@ -1,25 +1,31 @@
-// lib/auth.ts
 "use client";
 
 import { useEffect, useState } from "react";
 
-// type Role = "user" | "club-leader" | "super-admin" | null;
+export type Role = "user" | "club-leader" | "co-leader" | "super-admin" | null;
 
-export function useRole(): "user" | "club-leader" | "super-admin" | null {
-  const [role, setRole] = useState<"user" | "club-leader" | "super-admin" | null>(null);
+function readCookie(name: string): string | null {
+  if (typeof document === "undefined") return null;
+  const m = document.cookie
+    .split("; ")
+    .find((row) => row.startsWith(name + "="));
+  return m ? decodeURIComponent(m.split("=")[1]) : null;
+}
+
+export function useRole(): Role {
+  const [role, setRole] = useState<Role>(null);
 
   useEffect(() => {
-    // TODO: เปลี่ยนเป็นอ่านจาก cookie/localStorage/jwt
-    // ตัวอย่าง mock ชั่วคราว:
-    const stored = window.localStorage.getItem("role");
-
-    if (stored === "club-leader" || stored === "super-admin" || stored === "user") {
-      setRole(stored as any);
+    const cookieRole = readCookie("role");
+    if (
+      cookieRole === "club-leader" ||
+      cookieRole === "co-leader" ||
+      cookieRole === "super-admin" ||
+      cookieRole === "user"
+    ) {
+      setRole(cookieRole as Role);
     } else {
-      setRole("club-leader"); 
-      // เปลี่ยน default mock ตรงนี้เวลา dev:
-      // - "club-leader" เพื่อเทสต์หน้าชมรม
-      // - "super-admin" เพื่อเทสต์หน้าระบบรวม
+      setRole(null);
     }
   }, []);
 

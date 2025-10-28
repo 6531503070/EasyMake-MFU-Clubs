@@ -4,6 +4,15 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, type Variants } from "framer-motion";
 import { ErrorAlert } from "./ErrorAlert";
+import { loginRequest } from "@/services/authService";
+
+function getCookie(name: string): string | null {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie
+    .split("; ")
+    .find((row) => row.startsWith(name + "="));
+  return match ? decodeURIComponent(match.split("=")[1]) : null;
+}
 
 export function AdminLoginCard() {
   const router = useRouter();
@@ -16,55 +25,40 @@ export function AdminLoginCard() {
 
   useEffect(() => {
     const cookieRole = getCookie("role");
-    if (cookieRole === "super-admin") {
-      router.replace("/admin/");
-    } else if (cookieRole === "club-leader") {
+    if (
+      cookieRole === "super-admin" ||
+      cookieRole === "club-leader" ||
+      cookieRole === "co-leader"
+    ) {
       router.replace("/admin/");
     }
   }, [router]);
 
-  function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
     setError("");
 
-    // mock accounts
-    const mockAccounts = [
-      {
-        email: "leader@mfu.ac.th",
-        password: "1234567890123",
-        role: "club-leader" as const,
-      },
-      {
-        email: "admin@mfu.ac.th",
-        password: "admin123",
-        role: "super-admin" as const,
-      },
-    ];
+    try {
+      const result = await loginRequest(email, password);
 
-    const found = mockAccounts.find(
-      (acc) => acc.email === email && acc.password === password
-    );
+      if (
+        result.user.role !== "super-admin" &&
+        result.user.role !== "club-leader" &&
+        result.user.role !== "co-leader"
+      ) {
+        setError("You are not allowed to access admin dashboard.");
+        setSubmitting(false);
+        return;
+      }
 
-    if (!found) {
-      setError("❌ Invalid email or password");
+      router.push("/admin/");
+    } catch (err: any) {
+      setError(err.message || "Login failed");
       setSubmitting(false);
-      return;
-    }
-
-    window.localStorage.setItem("role", found.role);
-    window.localStorage.setItem("email", found.email);
-
-    document.cookie = `role=${found.role}; path=/`;
-
-    if (found.role === "super-admin") {
-      router.push("/admin/");
-    } else if (found.role === "club-leader") {
-      router.push("/admin/");
     }
   }
 
-  // motion variants
   const cardVariants: Variants = {
     hidden: { opacity: 0, scale: 0.9, y: 20 },
     show: {
@@ -108,7 +102,6 @@ export function AdminLoginCard() {
       initial="hidden"
       animate="show"
     >
-      {/* Header */}
       <motion.div className="space-y-2 text-center" variants={itemVariants}>
         <div className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wide font-medium">
           EasyMake • MFU Clubs
@@ -121,16 +114,13 @@ export function AdminLoginCard() {
         </p>
       </motion.div>
 
-      {/* Error (component แยก) */}
       <ErrorAlert message={error} />
 
-      {/* Form */}
       <motion.form
         onSubmit={onSubmit}
         className="space-y-5"
         variants={itemVariants}
       >
-        {/* Email */}
         <div className="space-y-2">
           <label className="block text-xs font-medium text-gray-600">
             Email
@@ -156,7 +146,6 @@ export function AdminLoginCard() {
           />
         </div>
 
-        {/* Password */}
         <div className="space-y-2">
           <label className="block text-xs font-medium text-gray-600">
             Password
@@ -182,7 +171,6 @@ export function AdminLoginCard() {
           />
         </div>
 
-        {/* Submit button */}
         <motion.button
           type="submit"
           disabled={submitting}
@@ -201,7 +189,6 @@ export function AdminLoginCard() {
           {submitting ? "Signing in..." : "Sign in"}
         </motion.button>
 
-        {/* Footnote */}
         <motion.p
           className="text-[11px] text-center text-gray-400 leading-relaxed"
           variants={itemVariants}
@@ -212,12 +199,4 @@ export function AdminLoginCard() {
       </motion.form>
     </motion.div>
   );
-}
-
-function getCookie(name: string): string | null {
-  if (typeof document === "undefined") return null;
-  const match = document.cookie
-    .split("; ")
-    .find((row) => row.startsWith(name + "="));
-  return match ? decodeURIComponent(match.split("=")[1]) : null;
 }
