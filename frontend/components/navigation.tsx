@@ -21,9 +21,9 @@ export function Navigation() {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
       <div className="container mx-auto px-4">
-        <div className="flex items-center h-16">
+        <div className="relative flex items-center justify-between h-16">
           {/* Logo */}
-          <div className="flex-shrink-0">
+          <div className="shrink-0 z-10">
             <Link href="/" className="flex items-center gap-2">
               <div className="relative w-10 h-10">
                 <Image
@@ -38,21 +38,21 @@ export function Navigation() {
             </Link>
           </div>
 
-          {/* Desktop Navigation - Centered */}
-          <div className="hidden md:flex items-center justify-center gap-8 flex-1">
+          {/* Desktop Navigation - Absolutely Centered */}
+          <div className="hidden md:flex items-center justify-center gap-8 absolute left-1/2 -translate-x-1/2 h-16">
             {navItems.map((item) => {
               const isActive = pathname === item.href
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="relative text-sm font-medium transition-colors hover:text-primary"
+                  className="relative flex items-center text-sm font-medium transition-colors hover:text-primary"
                 >
                   <span className={isActive ? "text-primary" : "text-foreground"}>{item.label}</span>
                   {isActive && (
                     <motion.div
                       layoutId="navbar-indicator"
-                      className="absolute -bottom-[21px] left-0 right-0 h-0.5 bg-primary"
+                      className="absolute -bottom-px left-0 right-0 h-0.5 bg-primary"
                       transition={{ type: "spring", stiffness: 380, damping: 30 }}
                     />
                   )}
@@ -62,14 +62,14 @@ export function Navigation() {
           </div>
 
           {/* Right Actions */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <Button variant="ghost" size="icon" className="hidden sm:flex">
+          <div className="flex items-center gap-2 shrink-0 z-10">
+            <Button variant="ghost" size="icon" className="hidden md:flex">
               <Bell className="w-5 h-5" />
             </Button>
-            <Button variant="ghost" size="icon" className="hidden sm:flex">
+            <Button variant="ghost" size="icon" className="hidden md:flex">
               <User className="w-5 h-5" />
             </Button>
-            <Button variant="default" size="sm" className="hidden sm:flex">
+            <Button variant="default" size="sm" className="hidden md:flex">
               Login
             </Button>
 

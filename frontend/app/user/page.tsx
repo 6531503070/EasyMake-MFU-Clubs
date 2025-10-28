@@ -45,26 +45,41 @@ export default function HomePage() {
     <div className="min-h-screen bg-background">
       <Navigation />
 
-      {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
-        {/* Background with gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-background via-background/95 to-background z-0" />
+      {/* Fixed Background Image with Blur - Covers entire page */}
+      <div className="fixed inset-0 z-0">
+        <Image
+          src="/sports-day-university-field.jpg"
+          alt="University Background"
+          fill
+          className="object-cover"
+          priority
+          quality={100}
+        />
+        {/* Blur overlay */}
+        <div className="absolute inset-0 backdrop-blur-md bg-background/60" />
+      </div>
 
-        {/* Decorative elements */}
-        <div className="absolute inset-0 overflow-hidden">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 0.1, scale: 1 }}
-            transition={{ duration: 1.5 }}
-            className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary rounded-full blur-3xl"
-          />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 0.1, scale: 1 }}
-            transition={{ duration: 1.5, delay: 0.3 }}
-            className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent rounded-full blur-3xl"
-          />
-        </div>
+      {/* Background with gradient overlay */}
+      <div className="fixed inset-0 bg-gradient-to-b from-background/40 via-background/70 to-background z-0" />
+
+      {/* Decorative elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 0.15, scale: 1 }}
+          transition={{ duration: 1.5 }}
+          className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary rounded-full blur-3xl"
+        />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 0.15, scale: 1 }}
+          transition={{ duration: 1.5, delay: 0.3 }}
+          className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent rounded-full blur-3xl"
+        />
+      </div>
+
+      {/* Hero Section */}
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16 z-10">
 
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-4xl mx-auto text-center space-y-8">
@@ -128,7 +143,7 @@ export default function HomePage() {
                 asChild
                 size="lg"
                 variant="outline"
-                className="border-primary text-primary hover:bg-primary/10 bg-transparent"
+                className="border-primary text-primary hover:bg-primary/10 bg-white dark:bg-gray-900"
               >
                 <Link href="/user/activities">View Activities</Link>
               </Button>
@@ -175,7 +190,7 @@ export default function HomePage() {
       </section>
 
       {/* Stay Connected Section */}
-      <section className="py-20 bg-surface/50">
+      <section className="relative py-20 bg-surface/50 z-10">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -220,7 +235,7 @@ export default function HomePage() {
       </section>
 
       {/* Featured Clubs Preview */}
-      <section className="py-20">
+      <section className="relative py-20 z-10">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -301,7 +316,7 @@ export default function HomePage() {
               asChild
               variant="outline"
               size="lg"
-              className="border-primary text-primary hover:bg-primary/10 bg-transparent"
+              className="border-primary text-primary hover:bg-primary/10 bg-white dark:bg-gray-900"
             >
               <Link href="/user/club">
                 View All Clubs
@@ -312,7 +327,9 @@ export default function HomePage() {
         </div>
       </section>
 
-      <Footer />
+      <div className="relative z-10">
+        <Footer />
+      </div>
     </div>
   )
 }

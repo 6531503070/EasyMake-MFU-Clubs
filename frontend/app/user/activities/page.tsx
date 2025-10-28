@@ -98,19 +98,41 @@ export default function ActivitiesPage() {
     <div className="min-h-screen bg-background">
       <Navigation />
 
+      {/* Fixed Background Image with Blur - Covers entire page */}
+      <div className="fixed inset-0 z-0">
+        <Image
+          src="/football-tournament-stadium.jpg"
+          alt="University Background"
+          fill
+          className="object-cover"
+          priority
+          quality={100}
+        />
+        {/* Blur overlay */}
+        <div className="absolute inset-0 backdrop-blur-md bg-background/60" />
+      </div>
+
+      {/* Background with gradient overlay */}
+      <div className="fixed inset-0 bg-gradient-to-b from-background/40 via-background/70 to-background z-0" />
+
+      {/* Decorative elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 0.15, scale: 1 }}
+          transition={{ duration: 1.5 }}
+          className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary rounded-full blur-3xl"
+        />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 0.15, scale: 1 }}
+          transition={{ duration: 1.5, delay: 0.3 }}
+          className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent rounded-full blur-3xl"
+        />
+      </div>
+
       {/* Hero Section */}
-      <section className="relative h-[60vh] min-h-[500px] flex items-center justify-center overflow-hidden pt-16">
-        {/* Background Image */}
-        <div className="absolute inset-0">
-          <Image
-            src="/sports-day-university-field.jpg"
-            alt="University Activities"
-            fill
-            className="object-cover"
-            priority
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/60 to-background" />
-        </div>
+      <section className="relative h-[60vh] min-h-[500px] flex items-center justify-center overflow-hidden pt-16 z-10">
 
         {/* Content */}
         <div className="container mx-auto px-4 relative z-10 text-center">
@@ -175,7 +197,7 @@ export default function ActivitiesPage() {
       </section>
 
       {/* Activity Feed */}
-      <section className="py-12">
+      <section className="relative py-12 z-10">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto space-y-6">
             {/* No Results State */}
@@ -210,8 +232,7 @@ export default function ActivitiesPage() {
               <motion.div
                 key={activity.id}
                 initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
               >
                 <Card className="bg-surface border-border overflow-hidden hover:border-primary/50 transition-all">
@@ -286,7 +307,7 @@ export default function ActivitiesPage() {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
+                viewport={{ once: true, amount: 0.3 }}
                 transition={{ duration: 0.5 }}
                 className="pt-8"
               >
@@ -299,8 +320,7 @@ export default function ActivitiesPage() {
                   <motion.div
                     key={event.id}
                     initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
+                    animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: index * 0.1 }}
                   >
                     <Link href={`/user/club/${event.clubId}`}>
@@ -360,14 +380,14 @@ export default function ActivitiesPage() {
               <motion.div
               initial={{ opacity: 0 }}
               whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
+              viewport={{ once: true, amount: 0.3 }}
               className="text-center pt-8"
             >
               <Button
                 variant="outline"
                 size="lg"
                 onClick={handleLoadMore}
-                className="border-primary text-primary hover:bg-primary/10 bg-transparent"
+                className="border-primary text-primary hover:bg-primary/10 bg-white dark:bg-gray-900"
               >
                 Load More Activities
               </Button>
@@ -377,7 +397,9 @@ export default function ActivitiesPage() {
         </div>
       </section>
 
-      <Footer />
+      <div className="relative z-10">
+        <Footer />
+      </div>
     </div>
   )
 }
