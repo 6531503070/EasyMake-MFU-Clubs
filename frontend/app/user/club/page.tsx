@@ -3,7 +3,7 @@
 import { motion } from "framer-motion"
 import Image from "next/image"
 import Link from "next/link"
-import { Users, Search, Grid3x3, List, SlidersHorizontal } from "lucide-react"
+import { Users, Search, Grid3x3, List } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -11,17 +11,65 @@ import { Badge } from "@/components/ui/badge"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { mockClubs } from "@/lib/mock-data"
-import { useState } from "react"
+import { useState, useMemo, useEffect } from "react"
 
 export default function ClubPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
+  const [searchQuery, setSearchQuery] = useState("")
+  const [selectedCategory, setSelectedCategory] = useState("All")
+  const [displayCount, setDisplayCount] = useState(9) // Initially show 9 clubs
+
+  // Filter clubs based on search query and category
+  const filteredClubs = useMemo(() => {
+    let filtered = mockClubs
+
+    // Filter by category
+    if (selectedCategory !== "All") {
+      filtered = filtered.filter(
+        (club) => club.category.toLowerCase() === selectedCategory.toLowerCase()
+      )
+    }
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase()
+      filtered = filtered.filter(
+        (club) =>
+          club.name.toLowerCase().includes(query) ||
+          club.description.toLowerCase().includes(query) ||
+          club.category.toLowerCase().includes(query) ||
+          (club.nameEn && club.nameEn.toLowerCase().includes(query)) ||
+          (club.nameTh && club.nameTh.toLowerCase().includes(query))
+      )
+    }
+
+    return filtered
+  }, [searchQuery, selectedCategory])
+
+  // Display only a limited number of clubs
+  const displayedClubs = useMemo(() => {
+    return filteredClubs.slice(0, displayCount)
+  }, [filteredClubs, displayCount])
+
+  // Check if there are more clubs to load
+  const hasMoreClubs = displayCount < filteredClubs.length
+
+  // Load more clubs handler
+  const handleLoadMore = () => {
+    setDisplayCount(prev => prev + 6) // Load 6 more clubs each time
+  }
+
+  // Reset display count when filters change
+  useEffect(() => {
+    setDisplayCount(9)
+  }, [searchQuery, selectedCategory])
 
   const categories = [
     { name: "All", count: mockClubs.length },
-    { name: "Arts", count: 3 },
-    { name: "Sports", count: 1 },
-    { name: "Technology", count: 1 },
-    { name: "Music", count: 1 },
+    { name: "Arts", count: mockClubs.filter(c => c.category === "arts").length },
+    { name: "Sports", count: mockClubs.filter(c => c.category === "sports").length },
+    { name: "Technology", count: mockClubs.filter(c => c.category === "technology").length },
+    { name: "Music", count: mockClubs.filter(c => c.category === "music").length },
   ]
 
   return (
@@ -32,8 +80,15 @@ export default function ClubPage() {
       <section className="relative h-[50vh] min-h-[400px] flex items-center justify-center overflow-hidden pt-16">
         {/* Background with overlay */}
         <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/70 to-background z-10" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/20 via-background to-background" />
+          <Image
+            src="/sports-day-university-field.jpg"
+            alt="MFU Campus"
+            fill
+            className="object-cover"
+            priority
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-background/95 via-background/80 to-background z-10" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/30 via-transparent to-transparent z-10" />
         </div>
 
         {/* Content */}
@@ -56,91 +111,109 @@ export default function ClubPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
-              className="max-w-3xl mx-auto pt-4"
+              className="max-w-3xl mx-auto pt-4 space-y-4"
             >
-              <div className="flex gap-2">
+              <div className="flex gap-2 items-center">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                   <Input
                     type="text"
                     placeholder="Search clubs by name, category, or interest..."
-                    className="pl-10 bg-surface/80 backdrop-blur-sm border-border h-12"
+                    className="pl-10 bg-white dark:bg-gray-900 border-border h-12"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
-                <Button size="lg" variant="outline" className="border-border hover:border-primary bg-transparent">
-                  <SlidersHorizontal className="w-5 h-5" />
-                </Button>
+                
+                {/* View Toggle */}
+                <div className="flex gap-1 bg-white dark:bg-gray-900 rounded-lg p-1 border border-border">
+                  <Button
+                    variant={viewMode === "grid" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setViewMode("grid")}
+                    className={viewMode === "grid" ? "bg-primary hover:bg-primary-dark text-background" : ""}
+                  >
+                    <Grid3x3 className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant={viewMode === "list" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setViewMode("list")}
+                    className={viewMode === "list" ? "bg-primary hover:bg-primary-dark text-background" : ""}
+                  >
+                    <List className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Category Filter */}
+              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide justify-center flex-wrap">
+                {categories.map((category, index) => (
+                  <motion.div
+                    key={category.name}
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: index * 0.05 }}
+                  >
+                    <Button
+                      variant={selectedCategory === category.name ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSelectedCategory(category.name)}
+                      className={
+                        selectedCategory === category.name
+                          ? "bg-primary hover:bg-primary-dark text-background whitespace-nowrap"
+                          : "border-border hover:border-primary whitespace-nowrap bg-white dark:bg-gray-900"
+                      }
+                    >
+                      {category.name}
+                      <Badge variant="secondary" className="ml-2 bg-background/20 text-inherit border-0">
+                        {category.count}
+                      </Badge>
+                    </Button>
+                  </motion.div>
+                ))}
               </div>
             </motion.div>
           </motion.div>
         </div>
       </section>
 
-      {/* Category Filter & View Toggle */}
-      <section className="sticky top-16 z-40 bg-background/95 backdrop-blur-md border-b border-border py-4">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between gap-4">
-            {/* Categories */}
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide flex-1">
-              {categories.map((category, index) => (
-                <motion.div
-                  key={category.name}
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: index * 0.05 }}
-                >
-                  <Button
-                    variant={index === 0 ? "default" : "outline"}
-                    size="sm"
-                    className={
-                      index === 0
-                        ? "bg-primary hover:bg-primary-dark text-background whitespace-nowrap"
-                        : "border-border hover:border-primary whitespace-nowrap"
-                    }
-                  >
-                    {category.name}
-                    <Badge variant="secondary" className="ml-2 bg-background/20 text-inherit border-0">
-                      {category.count}
-                    </Badge>
-                  </Button>
-                </motion.div>
-              ))}
-            </div>
-
-            {/* View Toggle */}
-            <div className="flex gap-1 bg-surface rounded-lg p-1 border border-border">
-              <Button
-                variant={viewMode === "grid" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setViewMode("grid")}
-                className={viewMode === "grid" ? "bg-primary hover:bg-primary-dark text-background" : ""}
-              >
-                <Grid3x3 className="w-4 h-4" />
-              </Button>
-              <Button
-                variant={viewMode === "list" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setViewMode("list")}
-                className={viewMode === "list" ? "bg-primary hover:bg-primary-dark text-background" : ""}
-              >
-                <List className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Clubs Grid */}
       <section className="py-12">
         <div className="container mx-auto px-4">
-          <div
-            className={
-              viewMode === "grid"
-                ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
-                : "max-w-4xl mx-auto space-y-6"
-            }
-          >
-            {mockClubs.map((club, index) => (
+          {filteredClubs.length === 0 ? (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-center py-20"
+            >
+              <div className="space-y-4">
+                <div className="text-6xl">🔍</div>
+                <h3 className="text-2xl font-semibold">No clubs found</h3>
+                <p className="text-muted-foreground max-w-md mx-auto">
+                  We couldn't find any clubs matching your search. Try adjusting your filters or search terms.
+                </p>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSearchQuery("")
+                    setSelectedCategory("All")
+                  }}
+                  className="border-primary text-primary hover:bg-primary/10"
+                >
+                  Clear Filters
+                </Button>
+              </div>
+            </motion.div>
+          ) : (
+            <div
+              className={
+                viewMode === "grid"
+                  ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+                  : "max-w-4xl mx-auto space-y-6"
+              }
+            >
+              {displayedClubs.map((club, index) => (
               <motion.div
                 key={club.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -148,7 +221,7 @@ export default function ClubPage() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: index * 0.05 }}
               >
-                <Link href={`/club/${club.id}`}>
+                <Link href={`/user/club/${club.id}`}>
                   <Card
                     className={`bg-surface border-border overflow-hidden hover:border-primary transition-all group cursor-pointer h-full ${
                       viewMode === "list" ? "flex flex-row" : ""
@@ -211,23 +284,38 @@ export default function ClubPage() {
                 </Link>
               </motion.div>
             ))}
-          </div>
+            </div>
+          )}
 
           {/* Load More */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            className="text-center pt-12"
-          >
-            <Button
-              variant="outline"
-              size="lg"
-              className="border-primary text-primary hover:bg-primary/10 bg-transparent"
+          {hasMoreClubs && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              className="text-center pt-12"
             >
-              Load More Clubs
-            </Button>
-          </motion.div>
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={handleLoadMore}
+                className="border-primary text-primary hover:bg-primary/10 bg-transparent"
+              >
+                Load More Clubs ({filteredClubs.length - displayCount} remaining)
+              </Button>
+            </motion.div>
+          )}
+
+          {/* Showing count */}
+          {displayedClubs.length > 0 && !hasMoreClubs && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-center pt-12 text-muted-foreground"
+            >
+              Showing all {filteredClubs.length} club{filteredClubs.length !== 1 ? 's' : ''}
+            </motion.div>
+          )}
         </div>
       </section>
 

@@ -60,7 +60,7 @@ export default function ClubDetailPage() {
         {/* Back Button */}
         <div className="absolute top-20 left-4 z-20">
           <Button asChild variant="ghost" size="sm" className="bg-background/80 backdrop-blur-sm hover:bg-background">
-            <Link href="/club">
+            <Link href="/user/club">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Clubs
             </Link>

@@ -75,11 +75,14 @@ export default function HomePage() {
               transition={{ duration: 0.6 }}
               className="flex justify-center"
             >
-              <div className="relative w-32 h-32 md:w-40 md:h-40">
-                <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary-dark to-accent rounded-2xl rotate-45 opacity-20 blur-xl" />
-                <div className="relative w-full h-full bg-gradient-to-br from-primary to-primary-dark rounded-2xl rotate-45 flex items-center justify-center border-2 border-primary-light shadow-2xl">
-                  <span className="text-background font-bold text-2xl md:text-3xl -rotate-45">MFU</span>
-                </div>
+              <div className="relative w-48 h-48 md:w-56 md:h-56">
+                <Image
+                  src="/brand-icon.png"
+                  alt="EasyMake Logo"
+                  fill
+                  className="object-contain"
+                  priority
+                />
               </div>
             </motion.div>
 
@@ -91,12 +94,10 @@ export default function HomePage() {
               className="space-y-4"
             >
               <h1 className="font-playfair text-5xl md:text-7xl font-bold leading-tight">
-                <span className="block text-foreground">Laced of</span>
                 <span className="block text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary-light to-primary">
-                  ART
+                  Club Hub
                 </span>
               </h1>
-              <p className="text-xl md:text-2xl text-muted-foreground font-light">Applied Artificial Technology</p>
             </motion.div>
 
             {/* Subtitle */}
@@ -118,7 +119,7 @@ export default function HomePage() {
               className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4"
             >
               <Button asChild size="lg" className="bg-primary hover:bg-primary-dark text-background font-semibold">
-                <Link href="/club">
+                <Link href="/user/club">
                   Explore Clubs
                   <ArrowRight className="ml-2 w-5 h-5" />
                 </Link>
@@ -129,7 +130,7 @@ export default function HomePage() {
                 variant="outline"
                 className="border-primary text-primary hover:bg-primary/10 bg-transparent"
               >
-                <Link href="/activities">View Activities</Link>
+                <Link href="/user/activities">View Activities</Link>
               </Button>
             </motion.div>
 
@@ -239,7 +240,7 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
             {[
               {
-                name: "Laced of ART",
+                name: "Club Hub",
                 category: "Arts & Technology",
                 image: "/art-technology-club-banner.jpg",
                 members: 156,
@@ -264,7 +265,7 @@ export default function HomePage() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.6, delay: index * 0.1 }}
               >
-                <Link href="/club">
+                <Link href="/user/club">
                   <Card className="bg-background border-border hover:border-primary transition-all duration-300 overflow-hidden group cursor-pointer">
                     <div className="relative h-48 overflow-hidden">
                       <Image
@@ -302,7 +303,7 @@ export default function HomePage() {
               size="lg"
               className="border-primary text-primary hover:bg-primary/10 bg-transparent"
             >
-              <Link href="/club">
+              <Link href="/user/club">
                 View All Clubs
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Link>
