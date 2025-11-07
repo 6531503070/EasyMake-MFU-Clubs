@@ -8,8 +8,8 @@ export const ClubController = {
       const leaderUserId = (req as any).user.id;
       const club = await ClubService.createClub(leaderUserId, req.body);
       res.json({ club });
-    } catch (err) {
-      next(err);
+    } catch (err: unknown) {
+      next(err as any);
     }
   },
 
@@ -18,8 +18,8 @@ export const ClubController = {
       const { clubId } = req.params;
       const club = await ClubService.getClubPublic(clubId);
       res.json({ club });
-    } catch (err) {
-      next(err);
+    } catch (err: unknown) {
+      next(err as any);
     }
   },
 
@@ -37,8 +37,8 @@ export const ClubController = {
         req.body
       );
       res.json({ club: updatedClub });
-    } catch (err) {
-      next(err);
+    } catch (err: unknown) {
+      next(err as any);
     }
   },
 
@@ -51,8 +51,8 @@ export const ClubController = {
         clubId
       );
       res.json({ members });
-    } catch (err) {
-      next(err);
+    } catch (err: unknown) {
+      next(err as any);
     }
   },
 
@@ -65,8 +65,8 @@ export const ClubController = {
         clubId
       );
       res.json({ activities });
-    } catch (err) {
-      next(err);
+    } catch (err: unknown) {
+      next(err as any);
     }
   },
 
@@ -83,10 +83,11 @@ export const ClubController = {
         clubId
       );
       res.json({ posts });
-    } catch (err) {
-      next(err);
+    } catch (err: unknown) {
+      next(err as any);
     }
   },
+
   updateClubCoverImage: async (
     req: Request,
     res: Response,
@@ -109,8 +110,8 @@ export const ClubController = {
       });
 
       return res.json(result);
-    } catch (err) {
-      next(err);
+    } catch (err: unknown) {
+      next(err as any);
     }
   },
 
@@ -129,13 +130,13 @@ export const ClubController = {
 
       res.setHeader("Content-Type", img.mime);
 
-      img.stream.on("error", (err) => {
-        next(err);
+      img.stream.on("error", (err: unknown) => {
+        next(err as any);
       });
 
       img.stream.pipe(res);
-    } catch (err) {
-      next(err);
+    } catch (err: unknown) {
+      next(err as any);
     }
   },
 };

@@ -8,6 +8,7 @@ export type LoginSuccessResponse = {
     role: "super-admin" | "club-leader" | "co-leader" | "user";
     full_name?: string;
     is_active: boolean;
+    clubId?: string | null;
   };
 };
 

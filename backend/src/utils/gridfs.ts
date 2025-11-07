@@ -1,16 +1,15 @@
 import mongoose from "mongoose";
-import { GridFSBucket } from "mongodb";
+import type { GridFSBucket, GridFSFile } from "mongodb";
 
 let bucket: GridFSBucket | null = null;
 
-export function getGridFSBucket(): GridFSBucket {
-  if (bucket) return bucket;
-
-  const db = mongoose.connection.db!;
+export function getGridFsBucket(): GridFSBucket {
+  const db = mongoose.connection.db;
   if (!db) {
-    throw new Error("MongoDB not connected");
+    throw new Error("MongoDB is not connected yet. Make sure mongoose.connect() is awaited before using GridFS.");
   }
-
-  bucket = new mongoose.mongo.GridFSBucket(db, { bucketName: "club_covers" });
+  if (!bucket) {
+    bucket = new mongoose.mongo.GridFSBucket(db, { bucketName: "uploads" });
+  }
   return bucket;
 }

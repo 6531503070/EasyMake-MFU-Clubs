@@ -5,6 +5,7 @@ import { authRequired } from "../middleware/auth";
 import { requireRole } from "../middleware/requireRole";
 import { requireClubStaff } from "../middleware/clubRoleGuard";
 import multer from "multer";
+import { ActivityController } from "../controllers/ActivityController";
 
 const router = Router();
 
@@ -68,6 +69,23 @@ router.get(
   requireRole("club-leader", "co-leader", "super-admin"),
   requireClubStaff,
   ClubController.listActivities
+);
+
+router.get(
+  "/:clubId/activities",
+  authRequired,
+  requireRole("club-leader", "co-leader", "super-admin"),
+  requireClubStaff,
+  ActivityController.listActivitiesForClub
+);
+
+router.post(
+  "/:clubId/activities",
+  authRequired,
+  requireRole("club-leader", "co-leader", "super-admin"),
+  requireClubStaff,
+  upload.array("images"),
+  ActivityController.createActivity
 );
 
 // super admin operations

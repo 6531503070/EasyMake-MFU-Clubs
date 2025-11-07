@@ -5,12 +5,13 @@ function setAuthCookies(
   res: Response,
   token: string,
   role: string,
-  email: string
+  email: string,
+  clubId?: string | null
 ) {
   const isProd = process.env.NODE_ENV === "production";
 
   res.cookie("token", token, {
-    httpOnly: true,
+    httpOnly: false,
     secure: isProd,
     sameSite: isProd ? "strict" : "lax",
     path: "/",
@@ -32,22 +33,32 @@ function setAuthCookies(
     path: "/",
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
+
+  if (clubId) {
+    res.cookie("clubId", clubId, {
+      httpOnly: false,
+      secure: isProd,
+      sameSite: isProd ? "strict" : "lax",
+      path: "/",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+  } else {
+    res.clearCookie("clubId", { path: "/" });
+  }
 }
 
 export const AuthController = {
   registerNormal: async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { email, password, citizen_id, full_name, phone } = req.body;
-      const { user, token } = await AuthService.registerUserNormal({
+      const { user, token, clubId } = await AuthService.registerUserNormal({
         email,
         password,
         citizen_id,
         full_name,
         phone,
       });
-
-      setAuthCookies(res, token, user.role, user.email);
-
+      setAuthCookies(res, token, user.role, user.email, clubId || null);
       res.json({
         token,
         user: {
@@ -56,6 +67,7 @@ export const AuthController = {
           role: user.role,
           full_name: user.full_name,
           is_active: user.is_active,
+          clubId: clubId || null,
         },
       });
     } catch (err) {
@@ -66,16 +78,14 @@ export const AuthController = {
   createSuperAdmin: async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { email, password, secret, full_name, phone } = req.body;
-      const { user, token } = await AuthService.createSuperAdmin({
+      const { user, token, clubId } = await AuthService.createSuperAdmin({
         email,
         password,
         secret,
         full_name,
         phone,
       });
-
-      setAuthCookies(res, token, user.role, user.email);
-
+      setAuthCookies(res, token, user.role, user.email, clubId || null);
       res.json({
         token,
         user: {
@@ -84,6 +94,7 @@ export const AuthController = {
           role: user.role,
           full_name: user.full_name,
           is_active: user.is_active,
+          clubId: clubId || null,
         },
       });
     } catch (err) {
@@ -94,10 +105,8 @@ export const AuthController = {
   login: async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { email, password } = req.body;
-      const { user, token } = await AuthService.login(email, password);
-
-      setAuthCookies(res, token, user.role, user.email);
-
+      const { user, token, clubId } = await AuthService.login(email, password);
+      setAuthCookies(res, token, user.role, user.email, clubId || null);
       res.json({
         token,
         user: {
@@ -106,6 +115,7 @@ export const AuthController = {
           role: user.role,
           full_name: user.full_name,
           is_active: user.is_active,
+          clubId: clubId || null,
         },
       });
     } catch (err) {
@@ -120,14 +130,12 @@ export const AuthController = {
   ) => {
     try {
       const { email, google_id, full_name } = req.body;
-      const { user, token } = await AuthService.registerOrAttachGoogle({
+      const { user, token, clubId } = await AuthService.registerOrAttachGoogle({
         email,
         google_id,
         full_name,
       });
-
-      setAuthCookies(res, token, user.role, user.email);
-
+      setAuthCookies(res, token, user.role, user.email, clubId || null);
       res.json({
         token,
         user: {
@@ -136,6 +144,7 @@ export const AuthController = {
           role: user.role,
           full_name: user.full_name,
           is_active: user.is_active,
+          clubId: clubId || null,
         },
       });
     } catch (err) {

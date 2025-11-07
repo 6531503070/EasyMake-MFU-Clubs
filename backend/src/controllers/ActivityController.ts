@@ -6,12 +6,14 @@ export const ActivityController = {
     try {
       const authorUserId = (req as any).user.id;
       const { clubId } = req.params;
+      const files = (req.files as Express.Multer.File[]) || [];
       const activity = await ActivityService.createActivity(
         authorUserId,
         clubId,
-        req.body
+        req.body,
+        files
       );
-      res.json({ activity });
+      res.status(201).json({ activity });
     } catch (err) {
       next(err);
     }
@@ -33,15 +35,35 @@ export const ActivityController = {
     }
   },
 
-  registerToActivity: async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) => {
+  updateDetails: async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const updaterUserId = (req as any).user.id;
+      const { id } = req.params;
+      const patch = req.body;
+      const files = (req.files as Express.Multer.File[]) || [];
+      const activity = await ActivityService.updateDetails(id, updaterUserId, patch, files);
+      res.json({ activity });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  registerToActivity: async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = (req as any).user.id;
       const { id } = req.params;
       const reg = await ActivityService.registerToActivity(userId, id);
+      res.json({ registration: reg });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  unregisterFromActivity: async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = (req as any).user.id;
+      const { id } = req.params;
+      const reg = await ActivityService.unregisterFromActivity(userId, id);
       res.json({ registration: reg });
     } catch (err) {
       next(err);
@@ -59,12 +81,7 @@ export const ActivityController = {
     }
   },
 
-  // NEW: list of activities for this club (leader/staff dashboard view)
-  listActivitiesForClub: async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) => {
+  listActivitiesForClub: async (req: Request, res: Response, next: NextFunction) => {
     try {
       const staffUserId = (req as any).user.id;
       const { clubId } = req.params;
@@ -78,12 +95,7 @@ export const ActivityController = {
     }
   },
 
-  // NEW: detail manage view for a single activity with roster
-  getActivityManageView: async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) => {
+  getActivityManageView: async (req: Request, res: Response, next: NextFunction) => {
     try {
       const staffUserId = (req as any).user.id;
       const { id } = req.params;

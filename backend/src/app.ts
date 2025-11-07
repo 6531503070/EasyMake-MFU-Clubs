@@ -1,37 +1,49 @@
 import express from "express";
-import cors from "cors";
 import routes from "./routes/index";
-import { HttpError } from "./utils/errors";
 import swaggerRouter from "./swagger";
 import cookieParser from "cookie-parser";
 import { corsMiddleware } from "./middleware/cors";
+import multer from "multer";
 
 const app = express();
 
 app.use(corsMiddleware);
 app.use(cookieParser());
-app.use(express.json());
 
-// Swagger UI at /docs
+const jsonParser = express.json({ limit: "10mb" });
+const urlParser  = express.urlencoded({ extended: true, limit: "10mb" });
+
+app.use((req, res, next) => {
+  if (req.is("multipart/form-data")) return next();
+  return jsonParser(req, res, (err) => (err ? next(err) : urlParser(req, res, next)));
+});
+
 app.use("/docs", swaggerRouter);
-
-// All API routes under /api
 app.use("/api", routes);
 
-// healthcheck
 app.get("/health", (_req, res) => {
   res.json({ ok: true });
 });
 
-// error handler
+app.use(
+  (err: any, _req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if (err instanceof multer.MulterError) {
+      if (err.code === "LIMIT_FILE_SIZE") {
+        return res.status(413).json({ message: "File too large" });
+      }
+      if (err.code === "LIMIT_UNEXPECTED_FILE") {
+        return res.status(400).json({ message: "Only image files are allowed" });
+      }
+      return res.status(400).json({ message: err.message });
+    }
+    return next(err);
+  }
+);
+
 app.use(
   (err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     console.error("[ERR]", err);
-    if (err instanceof HttpError) {
-      res.status(err.status).json({ error: err.message });
-    } else {
-      res.status(500).json({ error: "Internal Server Error" });
-    }
+    res.status(500).json({ error: "Internal Server Error" });
   }
 );
 
