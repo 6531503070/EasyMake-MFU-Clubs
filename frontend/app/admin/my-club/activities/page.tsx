@@ -18,7 +18,7 @@ export default function ActivitiesPage() {
 
   useEffect(() => {
     async function run() {
-      if (clubId === null) return; // ยังโหลด cookie อยู่
+      if (clubId === null) return;
       if (!clubId) {
         setLoading(false);
         setError("No clubId cookie. โปรดล็อกอินบัญชีหัวหน้าชมรม/ผู้ช่วย");
@@ -26,8 +26,7 @@ export default function ActivitiesPage() {
       }
       try {
         setLoading(true);
-        const rows = await getClubActivities(clubId); // ✅ เรียก /clubs/:clubId/activities/mine
-        console.log("[activities]", rows);
+        const rows = await getClubActivities(clubId);
         setActivities(rows);
         setError("");
       } catch (e: any) {

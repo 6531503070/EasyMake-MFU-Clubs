@@ -36,14 +36,23 @@ export type ActivityManageView = {
   }[];
 };
 
-export async function getClubActivities(
-  clubId: string
-): Promise<ClubActivityListItem[]> {
-  const data = await authedFetch(`/clubs/${clubId}/activities/mine`, {
-    method: "GET",
-  });
-  return (data as any).activities || [];
+export async function getClubActivities(clubId: string): Promise<ClubActivityListItem[]> {
+  const data = await authedFetch(`/clubs/${clubId}/activities/mine`, { method: "GET" });
+  const list = (data.activities || []) as any[];
+
+  return list.map((a, i) => ({
+    _id: a._id ?? a.id ?? `tmp-${i}-${a.title ?? "no-title"}-${a.start_time ?? "no-time"}`,
+    title: a.title ?? "",
+    start_time: a.start_time ?? "",
+    end_time: a.end_time,
+    location: a.location,
+    capacity: Number(a.capacity ?? 0),
+    registered: Number(a.registered ?? 0),
+    status: a.status ?? "published",
+    images: Array.isArray(a.images) ? a.images : [],
+  })) as ClubActivityListItem[];
 }
+
 
 export async function createActivity(
   clubId: string,

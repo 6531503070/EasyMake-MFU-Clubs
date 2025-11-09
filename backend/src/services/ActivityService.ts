@@ -7,6 +7,7 @@ import { HttpError } from "../utils/errors";
 import { NotificationService } from "./NotificationService";
 import { getGridFsBucket } from "../utils/gridfs";
 import { ObjectId } from "mongodb";
+import { env } from "../configs/env";
 
 async function assertIsClubStaff(userId: string, clubId: string) {
   const club = await ClubModel.findById(clubId);
@@ -14,7 +15,6 @@ async function assertIsClubStaff(userId: string, clubId: string) {
 
   if (club.leader_user_id === userId) return club;
 
-  // ✅ แก้ตรงนี้
   if (
     Array.isArray((club as any).co_leader_user_ids) &&
     (club as any).co_leader_user_ids.includes(userId)
@@ -92,7 +92,6 @@ async function registerToActivity(userId: string, activityId: string) {
   const club = await ClubModel.findById(activity.club_id);
 
   if (club) {
-    // ✅ แก้ตรงนี้
     await NotificationService.sendToUser(String(club.leader_user_id), {
       type: "new_registration",
       title: `New registration: ${activity.title}`,
@@ -104,9 +103,7 @@ async function registerToActivity(userId: string, activityId: string) {
   return reg;
 }
 
-async function storeFilesToGridFS(
-  files: Express.Multer.File[]
-): Promise<string[]> {
+async function storeFilesToGridFS(files: Express.Multer.File[]): Promise<string[]> {
   if (!files || files.length === 0) return [];
   const bucket = getGridFsBucket();
   const urls: string[] = [];
@@ -115,10 +112,10 @@ async function storeFilesToGridFS(
       contentType: f.mimetype,
     });
     await new Promise<void>((resolve, reject) => {
-      uploadStream.on("error", (err) => reject(err));
+      uploadStream.on("error", reject);
       uploadStream.on("finish", () => {
         const id = uploadStream.id as ObjectId;
-        urls.push(`/api/files/${id.toHexString()}`);
+        urls.push(`${env.PUBLIC_API_BASE}/api/files/${id.toHexString()}`);
         resolve();
       });
       uploadStream.end(f.buffer);

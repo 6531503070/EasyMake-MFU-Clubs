@@ -19,7 +19,7 @@ router.post(
 
 // update activity status
 router.patch(
-  "/activities/:id/status",
+  "/:id/status",
   authRequired,
   requireRole("club-leader", "co-leader", "super-admin"),
   ActivityController.updateStatus
@@ -27,7 +27,7 @@ router.patch(
 
 // (optional) update details + append images
 router.patch(
-  "/activities/:id/details",
+  "/:id/details",
   authRequired,
   requireRole("club-leader", "co-leader", "super-admin"),
   upload.array("images", 10),
@@ -36,14 +36,14 @@ router.patch(
 
 // register to activity
 router.post(
-  "/activities/:id/register",
+  "/:id/register",
   authRequired,
   requireRole("user", "club-leader", "co-leader", "super-admin"),
   ActivityController.registerToActivity
 );
 
 router.post(
-  "/activities/:id/unregister",
+  "/:id/unregister",
   authRequired,
   requireRole("user", "club-leader", "co-leader", "super-admin"),
   ActivityController.unregisterFromActivity
@@ -51,7 +51,7 @@ router.post(
 
 // check-in user
 router.post(
-  "/activities/checkin/:regId",
+  "/checkin/:regId",
   authRequired,
   requireRole("club-leader", "co-leader", "super-admin"),
   ActivityController.checkInUser
@@ -59,7 +59,7 @@ router.post(
 
 // manage single activity view
 router.get(
-  "/activities/:id/manage",
+  "/:id/manage",
   authRequired,
   requireRole("club-leader", "co-leader", "super-admin"),
   ActivityController.getActivityManageView

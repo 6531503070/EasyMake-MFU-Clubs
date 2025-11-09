@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, usePathname, useRouter } from "next/navigation";
 import { getActivityManageView, type ActivityManageView } from "@/services/activitiesService";
 import { TableCard } from "@/components/admin/TableCard";
 import { motion, Variants } from "framer-motion";
@@ -14,32 +14,55 @@ const pageVariants: Variants = {
 };
 
 export default function ActivityDetailPage() {
-  const params = useParams<{ id: string }>();
+  const params = useParams<{ id?: string | string[] }>();
+  const pathname = usePathname();
   const router = useRouter();
-  const activityId = params?.id;
 
+  const activityId = useMemo(() => {
+    const p = params?.id;
+    if (typeof p === "string" && p) return p;
+    if (Array.isArray(p) && p[0]) return p[0];
+    const seg = pathname?.split("/").filter(Boolean).pop();
+    if (seg && seg !== "new") return seg;
+    return "";
+  }, [params?.id, pathname]);
+
+  const [hydrated, setHydrated] = useState(false);
   const [data, setData] = useState<ActivityManageView | null>(null);
   const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState<string>("");
+  const [err, setErr] = useState("");
+
+  useEffect(() => setHydrated(true), []);
 
   useEffect(() => {
-    if (!activityId) return;
+    if (!hydrated) return;
+    if (!activityId) {
+      setLoading(false);
+      setErr("No activity id in URL");
+      return;
+    }
+
+    let cancelled = false;
+
     (async () => {
       try {
         setLoading(true);
         const resp = await getActivityManageView(activityId);
+        if (cancelled) return;
         setData(resp);
         setErr("");
       } catch (e: any) {
-        console.error(e);
+        if (cancelled) return;
         setErr(e?.message || "Load failed");
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     })();
-  }, [activityId]);
 
-  const registeredCount = data?.registeredCount ?? 0;
+    return () => {
+      cancelled = true;
+    };
+  }, [hydrated, activityId]);
 
   const whenText = useMemo(() => {
     if (!data?.activity?.start_time) return "-";
@@ -52,9 +75,9 @@ export default function ActivityDetailPage() {
     return end ? `${start} · ${end}` : start;
   }, [data?.activity?.start_time, data?.activity?.end_time]);
 
-  if (loading) {
+  if (!hydrated || loading) {
     return (
-      <section className="space-y-4">
+      <section className="max-w-4xl mx-auto px-4 space-y-4">
         <div className="h-6 w-40 rounded bg-gray-200 animate-pulse" />
         <TableCard>
           <div className="p-4 text-sm text-gray-500">Loading activity…</div>
@@ -65,7 +88,7 @@ export default function ActivityDetailPage() {
 
   if (err) {
     return (
-      <section className="space-y-4">
+      <section className="max-w-4xl mx-auto px-4 space-y-4">
         <div className="text-xl font-semibold">Activity</div>
         <TableCard>
           <div className="p-4 text-sm text-red-600">Error: {err}</div>
@@ -82,7 +105,7 @@ export default function ActivityDetailPage() {
 
   if (!data) {
     return (
-      <section className="space-y-4">
+      <section className="max-w-4xl mx-auto px-4 space-y-4">
         <div className="text-xl font-semibold">Activity</div>
         <TableCard>
           <div className="p-4 text-sm text-gray-500">No data.</div>
@@ -92,18 +115,23 @@ export default function ActivityDetailPage() {
   }
 
   return (
-    <motion.section className="space-y-8 max-w-5xl" variants={pageVariants} initial="hidden" animate="show">
+    <motion.section
+      className="space-y-8 max-w-4xl mx-auto px-4"
+      variants={pageVariants}
+      initial="hidden"
+      animate="show"
+    >
       <ActivityHeader
         title={data.activity.title}
         location={data.activity.location || "-"}
         whenText={whenText}
         capacity={data.activity.capacity}
-        registeredCount={registeredCount}
+        registeredCount={data.registeredCount ?? 0}
         status={data.activity.status}
         images={data.activity.images || []}
         onBack={() => router.back()}
-        onEdit={() => {/* TODO: open edit dialog */}}
-        onCancel={() => {/* TODO: call updateActivityStatus(activityId, 'cancelled') */}}
+        onEdit={() => {}}
+        onCancel={() => {}}
       />
 
       <TableCard>
