@@ -25,9 +25,11 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="flex min-h-screen bg-white text-gray-900">
+    <div className="flex h-screen overflow-hidden bg-white text-gray-900">
       <AdminSidebar />
-      <main className="flex-1 p-6 bg-gray-50 overflow-y-auto">{children}</main>
+      <main className="flex-1 h-screen overflow-y-auto bg-gray-50 p-6">
+        {children}
+      </main>
     </div>
   );
 }

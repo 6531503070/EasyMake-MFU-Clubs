@@ -133,7 +133,7 @@ export default function ManageClubPage() {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="min-h-screen bg-gray-50 text-gray-900 px-6 md:px-12 py-8"
+      className="min-h-screen bg-gray-50 text-gray-900 px-6 md:px-12"
     >
       <div className="max-w-2xl mx-auto">
         <h1 className="text-2xl font-semibold mb-1">Club Profile</h1>

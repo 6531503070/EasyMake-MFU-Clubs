@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import type { Variants, Transition } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useRole } from "@/lib/auth";
 import {
@@ -29,12 +30,9 @@ export function AdminSidebar() {
   useEffect(() => {
     function getCookie(name: string): string | null {
       if (typeof document === "undefined") return null;
-      const match = document.cookie.match(
-        new RegExp("(^| )" + name + "=([^;]+)")
-      );
+      const match = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
       return match ? decodeURIComponent(match[2]) : null;
     }
-
     const cookieEmail = getCookie("email");
     setEmail(cookieEmail);
   }, []);
@@ -43,25 +41,25 @@ export function AdminSidebar() {
     document.cookie = "role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     document.cookie = "email=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-
     window.location.href = "/admin/login";
   }
 
-  const sidebarVariants = {
+  const springTransition: Transition = {
+    type: "spring",
+    stiffness: 100,
+    damping: 20,
+    staggerChildren: 0.05,
+  };
+
+  const sidebarVariants: Variants = {
     hidden: { x: -280, opacity: 0 },
     visible: {
       x: 0,
       opacity: 1,
-      transition: {
-        type: "spring" as const,
-        stiffness: 100,
-        damping: 20,
-        staggerChildren: 0.05,
-      },
+      transition: springTransition,
     },
   };
 
-  // helper: คนกลุ่ม "club admin" = club-leader หรือ co-leader
   const isClubAdmin = role === "club-leader" || role === "co-leader";
 
   return (
@@ -71,7 +69,6 @@ export function AdminSidebar() {
       animate="visible"
       className="w-64 border-r border-gray-200 bg-gradient-to-b from-gray-50 to-white flex flex-col min-h-screen"
     >
-      {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -79,28 +76,18 @@ export function AdminSidebar() {
         className="px-6 py-4 border-b border-gray-200 relative overflow-hidden"
       >
         <motion.div
-          animate={{
-            scale: [1, 1.2, 1],
-            opacity: [0.3, 0.5, 0.3],
-          }}
-          transition={{
-            duration: 3,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
+          animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
+          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
           className="absolute top-0 right-0 w-24 h-24 bg-blue-500 rounded-full blur-3xl -mr-12 -mt-12"
         />
         <div className="relative">
           <div className="text-sm font-semibold text-gray-900 leading-tight">
-            {role === "super-admin"
-              ? "Super Admin Console"
-              : "Club Admin Panel"}
+            {role === "super-admin" ? "Super Admin Console" : "Club Admin Panel"}
           </div>
           <div className="text-[10px] text-gray-500">MFU Clubs</div>
         </div>
       </motion.div>
 
-      {/* Nav */}
       <nav className="flex-1 p-4 space-y-2 text-sm font-medium overflow-y-auto">
         <NavItem
           href="/admin"
@@ -170,7 +157,6 @@ export function AdminSidebar() {
         )}
       </nav>
 
-      {/* Footer: Admin Info + Logout */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -182,24 +168,14 @@ export function AdminSidebar() {
           className="flex items-center gap-3 mb-3 p-2 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
         >
           <motion.div
-            animate={{
-              rotate: [0, 5, -5, 0],
-            }}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-              repeatDelay: 3,
-            }}
+            animate={{ rotate: [0, 5, -5, 0] }}
+            transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
           >
             <UserCircle2 className="w-8 h-8 text-gray-500" />
           </motion.div>
           <div className="flex flex-col">
             <span className="text-sm font-medium text-gray-900">
-              {role === "super-admin"
-                ? "Super Admin"
-                : role === "co-leader"
-                ? "Co-Leader"
-                : "Club Leader"}
+              {role === "super-admin" ? "Super Admin" : role === "co-leader" ? "Co-Leader" : "Club Leader"}
             </span>
             <span className="text-xs text-gray-500 truncate max-w-[160px]">
               {email || "—"}
