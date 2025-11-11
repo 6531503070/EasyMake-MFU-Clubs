@@ -1,36 +1,22 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { getCookie } from "cookies-next";
 import { motion, Variants } from "framer-motion";
-import { TableCard } from "@/components/admin/TableCard";
 import { ActionDialog } from "@/components/admin/leaders/ActionDialog";
+import { PostsTable } from "@/components/admin/posts/PostsTable";
+import { PostCreateForm } from "@/components/admin/posts/PostCreateForm";
+import { PostEditForm } from "@/components/admin/posts/PostEditForm";
 
-// ---------- mock data ----------
-type PostRow = {
-  title: string;
-  published: boolean;
-  updatedAt: string;
-};
+import {
+  createPostMultipart,
+  deletePost,
+  getStaffPosts,
+  updatePostMultipart,
+  type StaffPostRow,
+} from "@/services/postsService";
+import { GlobalAlert } from "@/components/admin/GlobalAlert";
 
-const mockPosts: PostRow[] = [
-  {
-    title: "Recruitment Week is Open!",
-    published: true,
-    updatedAt: "24 Oct 2025",
-  },
-  {
-    title: "[Reminder] Dance practice this Friday",
-    published: true,
-    updatedAt: "22 Oct 2025",
-  },
-  {
-    title: "Workshop schedule update",
-    published: false,
-    updatedAt: "20 Oct 2025",
-  },
-];
-
-// ---------- animations ----------
 const pageVariants: Variants = {
   hidden: { opacity: 0 },
   show: {
@@ -38,7 +24,6 @@ const pageVariants: Variants = {
     transition: { when: "beforeChildren", staggerChildren: 0.08 },
   },
 };
-
 const headerVariants: Variants = {
   hidden: { opacity: 0, y: 16 },
   show: {
@@ -48,398 +33,132 @@ const headerVariants: Variants = {
   },
 };
 
-const rowVariants: Variants = {
-  hidden: { opacity: 0, y: 8 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] },
-  },
-};
-
-// ---------- small inline icons ----------
-function IconEdit() {
-  return (
-    <svg
-      className="w-4 h-4 text-blue-600 hover:text-blue-700 transition-colors"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.8}
-      viewBox="0 0 24 24"
-    >
-      <path
-        d="M16.862 3.487a2.1 2.1 0 0 1 2.97 2.97L7.5 18.79l-4 1 1-4 12.362-12.303Z"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path d="M14.5 5.5l4 4" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function IconDelete() {
-  return (
-    <svg
-      className="w-4 h-4 text-red-600 hover:text-red-700 transition-colors"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.8}
-      viewBox="0 0 24 24"
-    >
-      <path
-        d="M4 7h16M10 11v6M14 11v6M9 7V4h6v3M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-// ---------- image preview chip for create dialog ----------
-function ImagePreviewChip({
-  src,
-  name,
-  onRemove,
-}: {
-  src: string;
-  name: string;
-  onRemove: () => void;
-}) {
-  return (
-    <div className="flex items-center gap-2 border border-gray-200 rounded-md bg-white p-2 shadow-sm">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={src}
-        alt={name}
-        className="w-12 h-12 rounded object-cover border border-gray-200 bg-gray-100"
-      />
-      <div className="flex flex-col min-w-0">
-        <div className="text-[12px] text-gray-800 font-medium truncate max-w-[140px]">
-          {name}
-        </div>
-        <button
-          type="button"
-          onClick={onRemove}
-          className="text-[11px] text-red-600 hover:text-red-700 text-left"
-        >
-          Remove
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ---------- MAIN PAGE ----------
 export default function ClubPostsPage() {
-  // TABLE DATA
-  const [posts] = useState<PostRow[]>(mockPosts);
+  const [clubId, setClubId] = useState<string | null>(null);
+  const [posts, setPosts] = useState<StaffPostRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState("");
 
-  // DIALOG STATE
-  // mode: "create" | "edit" | "delete" | null
+  // 🔔 Global Alert state
+  const [alert, setAlert] = useState<{
+    type: "success" | "error" | null;
+    message: string;
+  }>({ type: null, message: "" });
+
+  const showAlert = (type: "success" | "error", message: string, ms = 3000) => {
+    setAlert({ type, message });
+    if (ms > 0) {
+      window.clearTimeout((showAlert as any)._t);
+      (showAlert as any)._t = window.setTimeout(() => {
+        setAlert({ type: null, message: "" });
+      }, ms);
+    }
+  };
+
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogMode, setDialogMode] = useState<
-    "create" | "edit" | "delete" | null
-  >(null);
+  const [mode, setMode] = useState<"create" | "edit" | "delete" | null>(null);
+  const [selected, setSelected] = useState<StaffPostRow | null>(null);
+  const submitRef = useRef<(() => void) | null>(null);
 
-  // which post is being edited or deleted
-  const [selectedPost, setSelectedPost] = useState<PostRow | null>(null);
+  useEffect(() => {
+    const cid = getCookie("clubId");
+    setClubId(typeof cid === "string" ? cid : null);
+  }, []);
 
-  // ---------- CREATE POST STATE ----------
-  const [newTitle, setNewTitle] = useState("");
-  const [newSubtitle, setNewSubtitle] = useState("");
-  // store all selected images and their blob previews
-  const [newImages, setNewImages] = useState<
-    { file: File; previewUrl: string }[]
-  >([]);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-
-  function pickImages() {
-    fileInputRef.current?.click();
-  }
-
-  function onSelectImages(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files ?? []);
-    if (!files.length) return;
-
-    const mapped = files.map((file) => ({
-      file,
-      previewUrl: URL.createObjectURL(file),
-    }));
-
-    // append to existing images
-    setNewImages((prev) => [...prev, ...mapped]);
-
-    // reset input value so user can pick same file again later if needed
-    e.target.value = "";
-  }
-
-  function removeImageAt(idx: number) {
-    setNewImages((prev) => prev.filter((_, i) => i !== idx));
-  }
-
-  // ---------- EDIT POST STATE ----------
-  const [editTitle, setEditTitle] = useState("");
-  const [editContent, setEditContent] = useState("");
-  const [editPublished, setEditPublished] = useState(false);
-
-  // OPEN DIALOG HELPERS
-  function openCreateDialog() {
-    // reset create form state
-    setNewTitle("");
-    setNewSubtitle("");
-    setNewImages([]);
-    setSelectedPost(null);
-    setDialogMode("create");
-    setDialogOpen(true);
-  }
-
-  function openDialog(mode: "edit" | "delete", post: PostRow) {
-    setSelectedPost(post);
-    setDialogMode(mode);
-    setDialogOpen(true);
-
-    if (mode === "edit") {
-      // preload edit form values
-      setEditTitle(post.title);
-      setEditContent(
-        "Lorem ipsum content of the announcement...\n(Preview only in mock)"
-      );
-      setEditPublished(post.published);
+  async function reload(cid: string) {
+    try {
+      setLoading(true);
+      const data = await getStaffPosts(cid);
+      setPosts(data);
+      setErr("");
+    } catch (e: any) {
+      setErr(e?.message || "Load failed");
+      showAlert("error", e?.message || "Failed to load posts.");
+    } finally {
+      setLoading(false);
     }
   }
 
-  // CLOSE / CONFIRM
+  useEffect(() => {
+    if (!clubId) return;
+    reload(clubId);
+  }, [clubId]);
+
+  function openCreate() {
+    setSelected(null);
+    setMode("create");
+    setDialogOpen(true);
+  }
+  function openEdit(p: StaffPostRow) {
+    setSelected(p);
+    setMode("edit");
+    setDialogOpen(true);
+  }
+  function openDelete(p: StaffPostRow) {
+    setSelected(p);
+    setMode("delete");
+    setDialogOpen(true);
+  }
   function closeDialog() {
     setDialogOpen(false);
-    setDialogMode(null);
-    setSelectedPost(null);
+    setMode(null);
+    setSelected(null);
+    submitRef.current = null;
   }
 
-  function confirmDialog() {
-    if (!dialogMode) {
+  // ---------- handlers ----------
+  async function handleCreate(data: {
+    title: string;
+    content?: string;
+    images?: File[];
+  }) {
+    if (!clubId) return;
+    try {
+      await createPostMultipart(clubId, {
+        title: data.title,
+        content: data.content,
+        images: data.images,
+      });
+      showAlert("success", "✅ Post created successfully!");
       closeDialog();
-      return;
+      await reload(clubId);
+    } catch (e: any) {
+      showAlert("error", e?.message || "Failed to create post.");
     }
-
-    if (dialogMode === "create") {
-      console.log("CREATE POST:", {
-        newTitle,
-        newSubtitle,
-        newImagesFiles: newImages.map((img) => img.file),
-      });
-    }
-
-    if (dialogMode === "edit" && selectedPost) {
-      console.log("SAVE EDIT POST:", {
-        original: selectedPost,
-        updated: {
-          title: editTitle,
-          content: editContent,
-          published: editPublished,
-        },
-      });
-    }
-
-    if (dialogMode === "delete" && selectedPost) {
-      console.log("DELETE POST:", selectedPost.title);
-    }
-
-    closeDialog();
   }
 
-  // ---------- dialog header props mapping ----------
-  let dialogTitle = "";
-  let dialogDesc = "";
-  let confirmLabel = "";
-  let confirmTone: "default" | "danger" = "default";
-
-  if (dialogMode === "create") {
-    dialogTitle = "New Post";
-    dialogDesc = "Publish an announcement or update for your followers.";
-    confirmLabel = "Create Post";
-    confirmTone = "default";
-  } else if (dialogMode === "edit") {
-    dialogTitle = "Edit Post";
-    dialogDesc = selectedPost
-      ? `Update content for “${selectedPost.title}”.`
-      : "";
-    confirmLabel = "Save Changes";
-    confirmTone = "default";
-  } else if (dialogMode === "delete") {
-    dialogTitle = "Delete Post";
-    dialogDesc = selectedPost
-      ? `This will permanently delete “${selectedPost.title}”.`
-      : "";
-    confirmLabel = "Delete Post";
-    confirmTone = "danger";
+  async function handleEdit(data: {
+    title?: string;
+    content?: string;
+    published?: boolean;
+    existingIds?: string[];
+    newFiles?: File[];
+  }) {
+    if (!clubId || !selected) return;
+    try {
+      await updatePostMultipart(String(selected._id), data);
+      showAlert("success", "✅ Post updated successfully!");
+      closeDialog();
+      await reload(clubId);
+    } catch (e: any) {
+      showAlert("error", e?.message || "Failed to update post.");
+    }
   }
 
-  // ---------- dialog body renderer ----------
-  function renderDialogBody() {
-    // CREATE
-    if (dialogMode === "create") {
-      return (
-        <div className="space-y-6 text-[13px]">
-          {/* Title / Subtitle */}
-          <div className="grid grid-cols-1 gap-4">
-            <div className="space-y-1">
-              <label className="block text-[11px] font-medium text-gray-700">
-                Post Title
-              </label>
-              <input
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-[13px]"
-                placeholder="Recruitment Week is Open!"
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="block text-[11px] font-medium text-gray-700">
-                Subtitle / Short Intro
-              </label>
-              <input
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-[13px]"
-                placeholder="Come join us this semester..."
-                value={newSubtitle}
-                onChange={(e) => setNewSubtitle(e.target.value)}
-              />
-            </div>
-          </div>
-
-          {/* Images Upload */}
-          <div className="space-y-2">
-            <div className="flex items-start justify-between flex-wrap gap-2">
-              <div className="space-y-1">
-                <div className="text-[11px] font-medium text-gray-700">
-                  Images
-                </div>
-                <p className="text-[11px] text-gray-500 leading-relaxed">
-                  Add event posters, photos, etc. You can upload more
-                  than one.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={pickImages}
-                className="px-2.5 py-1.5 text-[12px] rounded-md bg-gray-900 text-white hover:bg-gray-800 active:scale-[0.99]"
-              >
-                + Add Image
-              </button>
-
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                className="hidden"
-                onChange={onSelectImages}
-              />
-            </div>
-
-            {newImages.length > 0 ? (
-              <div className="flex flex-wrap gap-3">
-                {newImages.map((img, idx) => (
-                  <ImagePreviewChip
-                    key={idx}
-                    src={img.previewUrl}
-                    name={img.file.name}
-                    onRemove={() => removeImageAt(idx)}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="text-[12px] text-gray-400 border border-dashed border-gray-300 rounded-md p-4 bg-gray-50/60 text-center">
-                No images added yet.
-              </div>
-            )}
-
-            <p className="text-[10px] text-gray-400 leading-relaxed">
-              Recommended: clear poster / 16:9 / under ~2MB each.
-            </p>
-          </div>
-        </div>
-      );
+  async function handleDelete() {
+    if (!clubId || !selected) return;
+    try {
+      await deletePost(String(selected._id));
+      showAlert("success", "🗑️ Post deleted successfully!");
+      closeDialog();
+      await reload(clubId);
+    } catch (e: any) {
+      showAlert("error", e?.message || "Failed to delete post.");
     }
-
-    // EDIT
-    if (dialogMode === "edit" && selectedPost) {
-      return (
-        <div className="space-y-4 text-[13px]">
-          {/* Title */}
-          <div className="space-y-1">
-            <label className="block text-[11px] font-medium text-gray-700">
-              Post Title
-            </label>
-            <input
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-[13px]"
-              value={editTitle}
-              onChange={(e) => setEditTitle(e.target.value)}
-            />
-          </div>
-
-          {/* Content */}
-          <div className="space-y-1">
-            <label className="block text-[11px] font-medium text-gray-700">
-              Content
-            </label>
-            <textarea
-              rows={4}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-[13px]"
-              value={editContent}
-              onChange={(e) => setEditContent(e.target.value)}
-            />
-          </div>
-
-          {/* Published toggle */}
-          <div className="flex items-center gap-2 text-[13px]">
-            <input
-              type="checkbox"
-              className="h-4 w-4 rounded border-gray-300 text-gray-900"
-              id="publishToggle"
-              checked={editPublished}
-              onChange={(e) => setEditPublished(e.target.checked)}
-            />
-            <label
-              htmlFor="publishToggle"
-              className="text-gray-700 leading-none"
-            >
-              Published
-            </label>
-          </div>
-
-          <p className="text-[11px] text-gray-400 leading-relaxed">
-            Saving will immediately update what followers can see.
-          </p>
-        </div>
-      );
-    }
-
-    // DELETE
-    if (dialogMode === "delete" && selectedPost) {
-      return (
-        <div className="text-[13px] leading-relaxed space-y-2 text-red-600">
-          <div className="font-semibold">
-            This post will be permanently removed.
-          </div>
-
-          <div className="text-gray-700">
-            Title:{" "}
-            <span className="font-semibold text-gray-900">
-              {selectedPost.title}
-            </span>
-          </div>
-
-          <div className="text-[12px] text-gray-500">
-            This cannot be undone.
-          </div>
-        </div>
-      );
-    }
-
-    return null;
   }
+
+  const handleConfirm =
+    mode === "delete" ? handleDelete : () => submitRef.current?.();
 
   return (
     <>
@@ -447,9 +166,8 @@ export default function ClubPostsPage() {
         variants={pageVariants}
         initial="hidden"
         animate="show"
-        className="min-h-screen w-full flex flex-col justify-start space-y-6 px-6 md:px-12 py-8 bg-gray-50 text-gray-900"
+        className="min-h-screen w-full flex flex-col gap-6 px-6 md:px-12 py-8 bg-gray-50 text-gray-900"
       >
-        {/* Header row */}
         <motion.header
           variants={headerVariants}
           className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3"
@@ -464,105 +182,101 @@ export default function ClubPostsPage() {
           </div>
 
           <button
-            onClick={openCreateDialog}
+            onClick={openCreate}
             className="self-start px-3 py-2 text-sm rounded-md bg-gray-900 text-white hover:bg-gray-800 active:scale-[0.99] transition-all shadow-sm"
           >
             + New Post
           </button>
         </motion.header>
 
-        {/* Posts table - now full width of content area */}
-        <motion.div variants={headerVariants} className="w-full">
-          <TableCard>
-            <table className="w-full text-left text-sm text-gray-700">
-              <thead className="bg-gray-100 text-gray-600 text-[11px] uppercase tracking-wide">
-                <tr>
-                  <th className="px-4 py-2">Title</th>
-                  <th className="px-4 py-2">Published</th>
-                  <th className="px-4 py-2">Last Update</th>
-                  <th className="px-4 py-2 text-right">Action</th>
-                </tr>
-              </thead>
+        {/* 🔔 Global Alert */}
+        {alert.type && alert.message && (
+          <GlobalAlert
+            type={alert.type}
+            message={alert.message}
+            onClose={() => setAlert({ type: null, message: "" })}
+          />
+        )}
 
-              <tbody>
-                {posts.map((post, idx) => (
-                  <motion.tr
-                    key={idx}
-                    variants={rowVariants}
-                    initial="hidden"
-                    animate="show"
-                    className="border-t border-gray-200 bg-white align-top"
-                  >
-                    {/* Title */}
-                    <td className="px-4 py-3 font-medium text-gray-900">
-                      {post.title}
-                    </td>
+        {err && (
+          <div className="rounded-md border border-amber-300 bg-amber-50 text-amber-900 p-3 text-sm">
+            {err}
+          </div>
+        )}
 
-                    {/* Published pill */}
-                    <td className="px-4 py-3">
-                      {post.published ? (
-                        <span className="inline-flex items-center rounded-md bg-green-100 text-green-800 text-[11px] font-medium px-2 py-1">
-                          Yes
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center rounded-md bg-gray-200 text-gray-700 text-[11px] font-medium px-2 py-1">
-                          Draft
-                        </span>
-                      )}
-                    </td>
-
-                    {/* Last update */}
-                    <td className="px-4 py-3 text-gray-600">
-                      {post.updatedAt}
-                    </td>
-
-                    {/* Actions */}
-                    <td className="px-4 py-3 text-right whitespace-nowrap">
-                      <div className="flex items-center justify-end gap-3">
-                        {/* Edit */}
-                        <button
-                          className="p-1"
-                          title="Edit"
-                          onClick={() => openDialog("edit", post)}
-                        >
-                          <IconEdit />
-                        </button>
-
-                        {/* Delete */}
-                        <button
-                          className="p-1"
-                          title="Delete"
-                          onClick={() => openDialog("delete", post)}
-                        >
-                          <IconDelete />
-                        </button>
-                      </div>
-                    </td>
-                  </motion.tr>
-                ))}
-              </tbody>
-            </table>
-          </TableCard>
-
-          <p className="text-[11px] text-gray-400 leading-relaxed max-w-lg mt-3">
-            Deleting a post immediately hides it from all followers and from
-            your public club page.
-          </p>
-        </motion.div>
+        {!err && (
+          <PostsTable posts={posts} onEdit={openEdit} onDelete={openDelete} />
+        )}
       </motion.section>
 
-      {/* Dialog */}
       <ActionDialog
         open={dialogOpen}
-        mode={dialogMode === "delete" ? "delete" : "edit"} // reuse edit mode style for create/edit
-        title={dialogTitle}
-        description={dialogDesc}
-        confirmLabel={confirmLabel}
-        confirmTone={confirmTone}
+        mode={mode === "delete" ? "delete" : "edit"}
+        title={
+          mode === "create"
+            ? "New Post"
+            : mode === "edit"
+            ? "Edit Post"
+            : "Delete Post"
+        }
+        description={
+          mode === "create"
+            ? "Publish an announcement or update for your followers."
+            : mode === "edit"
+            ? selected
+              ? `Update content for “${selected.title}”.`
+              : ""
+            : selected
+            ? `This will permanently delete “${selected.title}”.`
+            : ""
+        }
+        confirmLabel={
+          mode === "delete"
+            ? "Delete Post"
+            : mode === "edit"
+            ? "Save Changes"
+            : "Create Post"
+        }
+        confirmTone={mode === "delete" ? "danger" : "default"}
         onClose={closeDialog}
-        onConfirm={confirmDialog}
+        onConfirm={handleConfirm}
       >
-        {renderDialogBody()}
+        {mode === "create" && (
+          <PostCreateForm
+            registerSubmit={(fn) => (submitRef.current = fn)}
+            onSubmit={handleCreate}
+          />
+        )}
+
+        {mode === "edit" && selected && (
+          <PostEditForm
+            registerSubmit={(fn) => (submitRef.current = fn)}
+            initial={{
+              title: selected.title,
+              content: selected.content ?? "",
+              published: selected.published,
+              images: selected.images ?? [],
+            }}
+            onSubmit={handleEdit}
+          />
+        )}
+
+        {mode === "delete" && selected && (
+          <div className="text-[13px] leading-relaxed space-y-2 text-red-600">
+            <div className="font-semibold">
+              This post will be permanently removed.
+            </div>
+            <div className="text-gray-700">
+              Title:{" "}
+              <span className="font-semibold text-gray-900">
+                {selected.title}
+              </span>
+            </div>
+            <div className="text-[12px] text-gray-500">
+              This cannot be undone.
+            </div>
+          </div>
+        )}
       </ActionDialog>
     </>
   );

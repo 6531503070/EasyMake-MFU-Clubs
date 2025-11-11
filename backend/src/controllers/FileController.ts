@@ -1,29 +1,26 @@
-import { Request, Response, NextFunction } from "express";
-import { getGridFsBucket } from "../utils/gridfs";
-import { ObjectId } from "mongodb";
-import { HttpError } from "../utils/errors";
+import { Request, Response } from "express";
+import { FileService } from "../services/FileService";
 
 export const FileController = {
-  getById: async (req: Request, res: Response, next: NextFunction) => {
+  getById: async (req: Request, res: Response) => {
     try {
-      const bucket = getGridFsBucket();
-      const id = new ObjectId(req.params.id);
+      const { id } = req.params;
+      const file = await FileService.readFileInfo(id);
+      if (!file) return res.status(404).json({ message: "File not found" });
 
-      const file = await bucket.find({ _id: id }).next();
-      if (!file) throw new HttpError(404, "File not found");
+      const contentType =
+        (file as any).contentType ||
+        (file as any).metadata?.contentType ||
+        "application/octet-stream";
 
-      if (file.contentType) {
-        res.setHeader("Content-Type", file.contentType);
-      } else {
-        res.setHeader("Content-Type", "application/octet-stream");
-      }
-      res.setHeader("Content-Disposition", `inline; filename="${file.filename}"`);
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Cache-Control", "public, max-age=600");
 
-      const download = bucket.openDownloadStream(id);
-      download.on("error", (err) => next(err));
-      download.pipe(res);
-    } catch (err) {
-      next(err);
+      const stream = FileService.openDownloadStreamById(id);
+      stream.on("error", () => res.status(404).end());
+      stream.pipe(res);
+    } catch {
+      res.status(400).json({ message: "Invalid file id" });
     }
   },
 };
