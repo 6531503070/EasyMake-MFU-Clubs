@@ -33,7 +33,6 @@ export async function getPublicPosts(clubId: string): Promise<PublicPostRow[]> {
   return data.posts as PublicPostRow[];
 }
 
-// ---------- JSON รุ่นเดิม (ยังใช้ได้ ถ้าไม่มีรูป) ----------
 export async function createPost(
   clubId: string,
   payload: { title: string; content?: string; images?: string[] }
@@ -45,7 +44,6 @@ export async function createPost(
   return data.post;
 }
 
-// ---------- ใหม่: Multipart (รองรับ images: File[]) ----------
 export async function createPostMultipart(
   clubId: string,
   payload: { title: string; content?: string; images?: File[] }
@@ -78,7 +76,6 @@ export async function updatePost(
   return data.post;
 }
 
-// ---------- ใหม่: Update แบบ Multipart (เก็บรูปเดิม + เพิ่มรูปใหม่) ----------
 export async function updatePostMultipart(
   postId: string,
   payload: {
@@ -101,9 +98,11 @@ export async function updatePostMultipart(
   const data = await authedFetch(`/posts/${postId}`, {
     method: "PATCH",
     body: fd,
+    requireJson: true,
   });
   return data.post;
 }
+
 
 export async function deletePost(postId: string) {
   const data = await authedFetch(`/posts/${postId}`, { method: "DELETE" });

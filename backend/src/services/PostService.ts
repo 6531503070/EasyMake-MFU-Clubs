@@ -119,9 +119,14 @@ async function deletePost(postId: string, actorUserId: string, isSuperAdmin: boo
     await assertClubStaffForPost(actorUserId, post);
   }
 
-  // HARD DELETE
   await ClubPostModel.deleteOne({ _id: postId });
   return { ok: true };
+}
+
+async function findById(postId: string) {
+  const post = await ClubPostModel.findById(postId);
+  if (!post) throw new HttpError(404, "Post not found");
+  return post;
 }
 
 export const PostService = {
@@ -130,4 +135,5 @@ export const PostService = {
   listPostsForClubStaff,
   updatePost,
   deletePost,
+  findById
 };

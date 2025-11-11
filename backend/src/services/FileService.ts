@@ -43,9 +43,22 @@ export async function deleteById(id: string) {
   await bucket.delete(_id);
 }
 
+export async function deleteMany(ids: string[]) {
+  const bucket = getGridFsBucket();
+  for (const id of ids) {
+    try {
+      const _id = new ObjectId(id);
+      await bucket.delete(_id);
+    } catch (err) {
+      console.warn(`[deleteMany] skip invalid id: ${id}`);
+    }
+  }
+}
+
 export const FileService = {
   saveBufferToGridFS,
   readFileInfo,
   openDownloadStreamById,
   deleteById,
+  deleteMany
 };

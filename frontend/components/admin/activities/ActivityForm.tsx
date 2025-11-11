@@ -17,7 +17,11 @@ type FormState = {
 const MAX_FILES = 5;
 const CLIENT_MAX_BYTES = 5 * 1024 * 1024;
 
-async function compressImage(file: File, maxW = 1920, quality = 0.85): Promise<File> {
+async function compressImage(
+  file: File,
+  maxW = 1920,
+  quality = 0.85
+): Promise<File> {
   const img = document.createElement("img");
   const url = URL.createObjectURL(file);
   await new Promise<void>((res, rej) => {
@@ -31,12 +35,19 @@ async function compressImage(file: File, maxW = 1920, quality = 0.85): Promise<F
   canvas.height = Math.round(img.height * scale);
   const ctx = canvas.getContext("2d")!;
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-  const blob = await new Promise<Blob>((res) => canvas.toBlob((b) => res(b as Blob), "image/jpeg", quality));
+  const blob = await new Promise<Blob>((res) =>
+    canvas.toBlob((b) => res(b as Blob), "image/jpeg", quality)
+  );
   URL.revokeObjectURL(url);
-  return new File([blob], file.name.replace(/\.\w+$/, ".jpg"), { type: "image/jpeg" });
+  return new File([blob], file.name.replace(/\.\w+$/, ".jpg"), {
+    type: "image/jpeg",
+  });
 }
 
-async function downToUnder(limitBytes: number, file: File): Promise<File | null> {
+async function downToUnder(
+  limitBytes: number,
+  file: File
+): Promise<File | null> {
   let current = file;
   let q = 0.82;
   let width = 1920;
@@ -84,7 +95,9 @@ export function ActivityForm({
     };
   }, [previews]);
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
+  function handleChange(
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) {
     const { name, value } = e.target;
     setForm((s) => ({
       ...s,
@@ -92,30 +105,16 @@ export function ActivityForm({
     }));
   }
 
-  function chooseFiles() {
-    fileRef.current?.click();
-  }
-
   async function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
     const picked = Array.from(e.target.files || []);
     if (!picked.length) return;
     const remain = Math.max(0, MAX_FILES - form.images.length);
     const slice = picked.slice(0, remain);
-    const processed: File[] = [];
-    for (const f of slice) {
-      if (f.size > CLIENT_MAX_BYTES) {
-        const compressed = await downToUnder(CLIENT_MAX_BYTES, f);
-        if (!compressed) {
-          alert(`"${f.name}" is larger than 5MB even after compression. Please choose a smaller image.`);
-          continue;
-        }
-        processed.push(compressed);
-      } else {
-        processed.push(f);
-      }
-    }
-    setForm((s) => ({ ...s, images: [...s.images, ...processed] }));
-    setPreviews((prev) => [...prev, ...processed.map((f) => URL.createObjectURL(f))]);
+    setForm((s) => ({ ...s, images: [...s.images, ...slice] }));
+    setPreviews((prev) => [
+      ...prev,
+      ...slice.map((f) => URL.createObjectURL(f)),
+    ]);
     if (fileRef.current) fileRef.current.value = "";
   }
 
@@ -153,7 +152,9 @@ export function ActivityForm({
       >
         <div className="border-b p-4 md:p-5">
           <div className="text-sm font-medium text-gray-900">Basic Info</div>
-          <div className="text-[12px] text-gray-500">Title, place, and schedule</div>
+          <div className="text-[12px] text-gray-500">
+            Title, place, and schedule
+          </div>
         </div>
         <div className="p-4 md:p-6 grid grid-cols-1 gap-4">
           <div className="grid gap-4 md:grid-cols-2">
@@ -238,73 +239,83 @@ export function ActivityForm({
         </div>
       </motion.div>
 
-     <motion.div
-  custom={1}
-  variants={groupVariants}
-  className="rounded-xl border bg-white shadow-[0_10px_40px_-10px_rgba(0,0,0,0.08)]"
->
-  <div className="border-b p-4 md:p-5">
-    <div className="text-sm font-medium text-gray-900">Images</div>
-    <div className="text-[12px] text-gray-500">Upload up to 5 images (≤ 1MB each)</div>
-  </div>
-
-  <div className="p-4 md:p-6 space-y-4">
-    <div className="flex items-center justify-between">
-      <div className="text-[12px] text-gray-500">
-        {previews.length} / 5 selected
-      </div>
-
-      <button
-        type="button"
-        onClick={() => fileRef.current?.click()}
-        className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium hover:bg-gray-50"
+      <motion.div
+        custom={1}
+        variants={groupVariants}
+        className="rounded-xl border bg-white shadow-[0_10px_40px_-10px_rgba(0,0,0,0.08)]"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 4a1 1 0 011 1v6h6a1 1 0 010 2h-6v6a1 1 0 01-2 0v-6H5a1 1 0 010-2h6V5a1 1 0 011-1z" />
-        </svg>
-        Add images
-      </button>
+        <div className="border-b p-4 md:p-5">
+          <div className="text-sm font-medium text-gray-900">Images</div>
+          <div className="text-[12px] text-gray-500">
+            Upload up to 5 images (≤ 1MB each)
+          </div>
+        </div>
 
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*"
-        multiple
-        className="hidden"
-        onChange={handleFiles}
-      />
-    </div>
+        <div className="p-4 md:p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="text-[12px] text-gray-500">
+              {previews.length} / 5 selected
+            </div>
 
-    {previews.length === 0 ? (
-      <div className="rounded-lg border border-dashed border-gray-300 p-6 text-center text-[12px] text-gray-500">
-        No images selected
-      </div>
-    ) : (
-      <ul className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        {previews.map((src, idx) => (
-          <motion.li
-            key={idx}
-            className="relative group rounded-lg border border-gray-200 bg-gray-50 overflow-hidden"
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.2 }}
-          >
-            <img src={src} alt={`preview-${idx}`} className="h-32 w-full object-cover" />
             <button
               type="button"
-              onClick={() => removeImage(idx)}
-              className="absolute top-2 right-2 rounded-md bg-black/70 text-white text-[11px] px-2 py-1 opacity-0 group-hover:opacity-100 transition"
-              title="Remove"
+              onClick={() => fileRef.current?.click()}
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium hover:bg-gray-50"
             >
-              Remove
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path d="M12 4a1 1 0 011 1v6h6a1 1 0 010 2h-6v6a1 1 0 01-2 0v-6H5a1 1 0 010-2h6V5a1 1 0 011-1z" />
+              </svg>
+              Add images
             </button>
-          </motion.li>
-        ))}
-      </ul>
-    )}
-  </div>
-</motion.div>
 
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={handleFiles}
+            />
+          </div>
+
+          {previews.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-gray-300 p-6 text-center text-[12px] text-gray-500">
+              No images selected
+            </div>
+          ) : (
+            <ul className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {previews.map((src, idx) => (
+                <motion.li
+                  key={idx}
+                  className="relative group rounded-lg border border-gray-200 bg-gray-50 overflow-hidden"
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <img
+                    src={src}
+                    alt={`preview-${idx}`}
+                    className="h-32 w-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeImage(idx)}
+                    className="absolute top-2 right-2 rounded-md bg-black/70 text-white text-[11px] px-2 py-1 opacity-0 group-hover:opacity-100 transition"
+                    title="Remove"
+                  >
+                    Remove
+                  </button>
+                </motion.li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </motion.div>
 
       <motion.div
         custom={2}

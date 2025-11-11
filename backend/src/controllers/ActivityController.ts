@@ -4,35 +4,26 @@ import { ActivityService } from "../services/ActivityService";
 export const ActivityController = {
   createActivity: async (req: Request, res: Response, next: NextFunction) => {
     try {
-      console.log("[CREATE ACTIVITY] Headers:", req.headers);
-      console.log("[CREATE ACTIVITY] Body:", req.body);
-
-      // ตรวจสอบว่า req.files เป็น Express.Multer.File[] หรือไม่
-      const files = req.files as Express.Multer.File[] | undefined;
-      if (Array.isArray(files)) {
-        console.log(
-          "[CREATE ACTIVITY] Files:",
-          files.map((f) => ({
-            name: f.originalname,
-            size: f.size,
-            mimetype: f.mimetype,
-          }))
-        );
-      } else {
-        console.log("[CREATE ACTIVITY] Files: None or not an array");
-      }
-
       const authorUserId = (req as any).user.id;
       const { clubId } = req.params;
+      const files = (req.files as Express.Multer.File[]) || [];
+      const data = {
+        title: req.body.title,
+        subtitle: req.body.subtitle,
+        description: req.body.description,
+        location: req.body.location,
+        start_time: req.body.start_time,
+        end_time: req.body.end_time,
+        capacity: Number(req.body.capacity),
+      };
       const activity = await ActivityService.createActivity(
         authorUserId,
         clubId,
-        req.body,
-        files || []
+        data,
+        files
       );
       res.status(201).json({ activity });
     } catch (err) {
-      console.error("[CREATE ACTIVITY ERROR]", err);
       next(err);
     }
   },

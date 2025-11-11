@@ -75,52 +75,47 @@ export const PostController = {
         ? req.body.published
         : undefined;
 
-    const imagesFromBody =
-      (parseMaybeJson<string[]>(req.body.images) || []).map((s) =>
-        toUrlIfId(req, s)
-      );
+    const existingIds = parseMaybeJson<string[]>(req.body.existingIds) ?? [];
 
-    const existingIds =
-      (parseMaybeJson<string[]>(req.body.existingIds) || imagesFromBody).map(
-        (s) => toUrlIfId(req, s)
-      );
-
-    let imagesFiles: Express.Multer.File[] = [];
-    let newImagesFiles: Express.Multer.File[] = [];
-
-    if (Array.isArray(req.files)) {
-      const arr = req.files as Express.Multer.File[];
-      imagesFiles = arr.filter((f) => f.fieldname === "images");
-      newImagesFiles = arr.filter((f) => f.fieldname === "newImages");
-    } else if (req.files) {
-      const filesObj = req.files as Record<string, Express.Multer.File[]>;
-      imagesFiles = Array.isArray(filesObj.images) ? filesObj.images : [];
-      newImagesFiles = Array.isArray(filesObj.newImages)
-        ? filesObj.newImages
-        : [];
-    }
+    const files = req.files as Record<string, Express.Multer.File[]> | undefined;
+    const imagesFiles = files?.images ?? [];
+    const newImagesFiles = files?.newImages ?? [];
 
     const uploadedFromImages = await saveUploadedImagesToUrls(req, imagesFiles);
     const uploadedFromNew = await saveUploadedImagesToUrls(req, newImagesFiles);
 
-    const finalImages = [
-      ...existingIds,           
-      ...uploadedFromImages,     
-      ...uploadedFromNew,         
-    ];
+    const post = await PostService.findById(postId);
+    if (!post) return res.status(404).json({ message: "Post not found" });
 
-    const post = await PostService.updatePost(postId, actorUserId, {
+    const keepImages = existingIds.map((s) => toUrlIfId(req, s));
+    const oldImages = Array.isArray(post.images) ? post.images : [];
+
+    const removed = oldImages.filter((url: string) => !keepImages.includes(url));
+    if (removed.length > 0) {
+      const ids = removed
+        .map((url: string) => url.split("/").pop())
+        .filter((id): id is string => !!id && /^[a-f0-9]{24}$/.test(id));
+      if (ids.length > 0) {
+        await FileService.deleteMany(ids);
+      }
+    }
+
+    const finalImages = [...keepImages, ...uploadedFromImages, ...uploadedFromNew];
+
+    const updated = await PostService.updatePost(postId, actorUserId, {
       title,
       content,
       published,
-      images: finalImages.length ? finalImages : undefined,
+      images: finalImages,
     });
 
-    res.json({ post });
+    res.json({ post: updated });
   } catch (err) {
-    next(err);
+    console.error("[updatePost ERR]", err);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 },
+
 
   listPostsPublic: async (req: Request, res: Response, next: NextFunction) => {
     try {

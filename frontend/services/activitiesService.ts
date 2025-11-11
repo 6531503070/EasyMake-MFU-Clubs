@@ -67,23 +67,19 @@ export async function createActivity(
     images?: File[];
   }
 ) {
-  const { images = [], ...rest } = payload;
-
-  if (images.length > 0) {
-    const fd = new FormData();
-    Object.entries(rest).forEach(([k, v]) => {
-      if (typeof v !== "undefined" && v !== null) fd.append(k, String(v));
-    });
-    images.forEach((f) => fd.append("images", f));
-    return authedFetch(`/clubs/${clubId}/activities`, {
-      method: "POST",
-      body: fd,
-    });
-  }
-
+  const fd = new FormData();
+  Object.entries(payload).forEach(([k, v]) => {
+    if (v !== undefined && v !== null) {
+      if (k === "images" && Array.isArray(v)) {
+        v.forEach((f) => fd.append("images", f));
+      } else {
+        fd.append(k, String(v));
+      }
+    }
+  });
   return authedFetch(`/clubs/${clubId}/activities`, {
     method: "POST",
-    body: JSON.stringify(rest),
+    body: fd,
   });
 }
 

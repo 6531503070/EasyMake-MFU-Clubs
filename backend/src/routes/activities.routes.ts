@@ -17,13 +17,7 @@ router.post(
   ActivityController.createActivity
 );
 
-// update activity status
-router.patch(
-  "/:id/status",
-  authRequired,
-  requireRole("club-leader", "co-leader", "super-admin"),
-  ActivityController.updateStatus
-);
+
 
 // (optional) update details + append images
 router.patch(
@@ -34,6 +28,13 @@ router.patch(
   ActivityController.updateDetails
 );
 
+// update activity status
+router.patch(
+  "/:id/status",
+  authRequired,
+  requireRole("club-leader", "co-leader", "super-admin"),
+  ActivityController.updateStatus
+);
 // register to activity
 router.post(
   "/:id/register",
