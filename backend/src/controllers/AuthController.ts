@@ -178,4 +178,30 @@ export const AuthController = {
       next(err);
     }
   },
+  oauthGoogleWithIdToken: async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const { id_token } = req.body;
+      const { user, token, clubId } = await AuthService.loginWithGoogleIdToken(
+        id_token
+      );
+      setAuthCookies(res, token, user.role, user.email, clubId || null);
+      res.json({
+        token,
+        user: {
+          id: user._id,
+          email: user.email,
+          role: user.role,
+          full_name: user.full_name,
+          is_active: user.is_active,
+          clubId: clubId || null,
+        },
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
 };

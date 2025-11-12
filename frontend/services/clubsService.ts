@@ -1,4 +1,4 @@
-import { authedFetch } from "./http";
+import { authedFetch, BASE_URL } from "./http";
 
 export type ClubApiRow = {
   _id: string;
@@ -18,10 +18,17 @@ export type ClubApiRow = {
 };
 
 export async function getAllClubs(): Promise<{ clubs: ClubApiRow[] }> {
-  const data = await authedFetch("/clubs", {
-    method: "GET",
-  });
+  const data = await authedFetch("/clubs", { method: "GET" });
   return data as { clubs: ClubApiRow[] };
+}
+
+export async function getPublicClubs(): Promise<{ clubs: ClubApiRow[] }> {
+  const res = await fetch(`${BASE_URL}/clubs/public`, { cache: "no-store" });
+  if (!res.ok) {
+    const msg = await res.text().catch(() => "");
+    throw new Error(msg || `Failed to load clubs (${res.status})`);
+  }
+  return res.json();
 }
 
 export async function suspendClub(clubId: string) {

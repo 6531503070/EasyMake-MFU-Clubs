@@ -1,5 +1,5 @@
 import "@/app/globals.css";
-import { ThemeProvider } from "@/components/theme-provider";
+import Providers from "./providers";
 
 export const metadata = {
   title: "EasyMake MFU Clubs",
@@ -14,9 +14,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="min-h-screen bg-gray-50 text-gray-900">
-        <ThemeProvider attribute="class" defaultTheme="light">
-          {children}
-        </ThemeProvider>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

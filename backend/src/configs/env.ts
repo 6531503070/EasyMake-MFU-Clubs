@@ -3,7 +3,7 @@ export const env = {
   PUBLIC_API_BASE: process.env.PUBLIC_API_BASE || "http://localhost:8081",
   MONGO_URI: process.env.MONGO_URI || "mongodb://localhost:27017/easymake",
   JWT_SECRET: process.env.JWT_SECRET || "dev-secret",
-
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID as string,
   EMAIL_FROM: process.env.EMAIL_FROM || "noreply@easymake.mfu.ac.th",
   SMTP_HOST: process.env.SMTP_HOST || "smtp.gmail.com",
   SMTP_PORT: Number(process.env.SMTP_PORT || 587),

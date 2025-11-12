@@ -6,6 +6,7 @@ import { requireRole } from "../middleware/requireRole";
 import { requireClubStaff } from "../middleware/clubRoleGuard";
 import multer from "multer";
 import { ActivityController } from "../controllers/ActivityController";
+import { ClubModel } from "../models/Club.model";
 
 const router = Router();
 
@@ -14,6 +15,29 @@ const upload = multer({
   limits: {
     fileSize: 2 * 1024 * 1024, 
   },
+});
+// public list of active clubs
+router.get("/public", async (_req, res, next) => {
+  try {
+    const clubs = await ClubModel.find(
+      { status: "active" },
+      "_id name tagline status founding_members"
+    )
+      .sort({ created_at: -1 })
+      .lean();
+
+    const formatted = clubs.map((c: any) => ({
+      _id: c._id,
+      name: c.name,
+      tagline: c.tagline || "",
+      status: c.status,
+      members: c.founding_members || [],
+    }));
+
+    res.json({ clubs: formatted });
+  } catch (err) {
+    next(err);
+  }
 });
 
 // super-admin list all clubs

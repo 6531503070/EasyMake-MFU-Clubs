@@ -1,22 +1,22 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import Image from "next/image"
-import { usePathname } from "next/navigation"
-import { motion } from "framer-motion"
-import { Menu, X, User, Bell } from "lucide-react"
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
+import Link from "next/link";
+import Image from "next/image";
+import { usePathname } from "next/navigation";
+import { motion } from "framer-motion";
+import { Menu, X, User, Bell } from "lucide-react";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
 
 export function Navigation() {
-  const pathname = usePathname()
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const pathname = usePathname();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navItems = [
     { href: "/user", label: "Home", labelTh: "หน้าแรก" },
     { href: "/user/club", label: "Club", labelTh: "ชมรม" },
     { href: "/user/activities", label: "Activities", labelTh: "กิจกรรม" },
-  ]
+  ];
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
@@ -34,30 +34,40 @@ export function Navigation() {
                   priority
                 />
               </div>
-              <span className="font-semibold text-lg hidden sm:inline">Club Hub</span>
+              <span className="font-semibold text-lg hidden sm:inline">
+                Club Hub
+              </span>
             </Link>
           </div>
 
           {/* Desktop Navigation - Absolutely Centered */}
           <div className="hidden md:flex items-center justify-center gap-8 absolute left-1/2 -translate-x-1/2 h-16">
             {navItems.map((item) => {
-              const isActive = pathname === item.href
+              const isActive = pathname === item.href;
               return (
                 <Link
                   key={item.href}
                   href={item.href}
                   className="relative flex items-center text-sm font-medium transition-colors hover:text-primary"
                 >
-                  <span className={isActive ? "text-primary" : "text-foreground"}>{item.label}</span>
+                  <span
+                    className={isActive ? "text-primary" : "text-foreground"}
+                  >
+                    {item.label}
+                  </span>
                   {isActive && (
                     <motion.div
                       layoutId="navbar-indicator"
                       className="absolute -bottom-px left-0 right-0 h-0.5 bg-primary"
-                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 380,
+                        damping: 30,
+                      }}
                     />
                   )}
                 </Link>
-              )
+              );
             })}
           </div>
 
@@ -69,8 +79,13 @@ export function Navigation() {
             <Button variant="ghost" size="icon" className="hidden md:flex">
               <User className="w-5 h-5" />
             </Button>
-            <Button variant="default" size="sm" className="hidden md:flex">
-              Login
+            <Button
+              asChild
+              variant="default"
+              size="sm"
+              className="hidden md:flex"
+            >
+              <Link href="/user/auth/login">Login</Link>
             </Button>
 
             {/* Mobile Menu Button */}
@@ -80,7 +95,11 @@ export function Navigation() {
               className="md:hidden"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              {mobileMenuOpen ? (
+                <X className="w-5 h-5" />
+              ) : (
+                <Menu className="w-5 h-5" />
+              )}
             </Button>
           </div>
         </div>
@@ -95,19 +114,21 @@ export function Navigation() {
           >
             <div className="flex flex-col gap-4">
               {navItems.map((item) => {
-                const isActive = pathname === item.href
+                const isActive = pathname === item.href;
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
                     className={`text-sm font-medium transition-colors ${
-                      isActive ? "text-primary" : "text-foreground hover:text-primary"
+                      isActive
+                        ? "text-primary"
+                        : "text-foreground hover:text-primary"
                     }`}
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     {item.label}
                   </Link>
-                )
+                );
               })}
               <div className="flex gap-2 pt-2 border-t border-border">
                 <Button variant="ghost" size="sm" className="flex-1">
@@ -123,5 +144,5 @@ export function Navigation() {
         )}
       </div>
     </nav>
-  )
+  );
 }

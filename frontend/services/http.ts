@@ -1,4 +1,4 @@
-export const BASE_URL = "http://localhost:8081/api";
+export const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL!;
 
 export async function authedFetch(
   path: string,

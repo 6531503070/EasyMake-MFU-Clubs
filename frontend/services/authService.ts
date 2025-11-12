@@ -36,3 +36,26 @@ export async function loginRequest(email: string, password: string) {
   const data: LoginSuccessResponse = await res.json();
   return data;
 }
+
+export async function loginWithGoogleIdToken(idToken: string) {
+  const res = await fetch(`${BASE_URL}/auth/oauth/google-token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ id_token: idToken }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data?.message || "Login failed");
+  }
+  const data: LoginSuccessResponse = await res.json();
+  return data;
+}
+
+export async function getMe() {
+  const res = await fetch(`${BASE_URL}/me`, {
+    credentials: "include",
+  });
+  if (!res.ok) return null;
+  return res.json();
+}

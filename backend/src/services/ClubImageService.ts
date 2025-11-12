@@ -1,5 +1,5 @@
 import { ClubModel } from "../models/Club.model";
-import { getGridFSBucket } from "../utils/gridfs";
+import { getGridFsBucket } from "../utils/gridfs";
 import { ObjectId } from "mongodb";
 
 const PUBLIC_API_ORIGIN =
@@ -26,7 +26,7 @@ export const ClubImageService = {
       throw new Error("Image too large");
     }
 
-    const bucket = getGridFSBucket();
+    const bucket = getGridFsBucket();
     const filename = originalName || `club-${clubId}-${Date.now()}`;
 
     await new Promise<void>((resolve, reject) => {
@@ -67,7 +67,7 @@ export const ClubImageService = {
       return null;
     }
 
-    const bucket = getGridFSBucket();
+    const bucket = getGridFsBucket();
     const fileId = new ObjectId(club.cover_image_file_id);
 
     return {

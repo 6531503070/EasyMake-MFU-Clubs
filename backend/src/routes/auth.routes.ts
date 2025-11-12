@@ -14,6 +14,8 @@ router.post("/login", AuthController.login);
 // login/register via google
 router.post("/oauth/google", AuthController.oauthGoogleCallback);
 
+router.post("/oauth/google-token", AuthController.oauthGoogleWithIdToken);
+
 // create club-leader (super-admin only)
 router.post(
   "/create-leader",
