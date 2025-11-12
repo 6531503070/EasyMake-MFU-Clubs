@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Navigation } from "@/components/navigation";
 import { Footer } from "@/components/footer";
 import { getPublicClubs, type ClubApiRow } from "@/services/clubsService";
 import FeaturedClubsSection from "@/components/user/home/FeaturedClubsSection";
 import FeaturesSection from "@/components/user/home/FeaturesSection";
 import BackgroundDecor from "@/components/user/home/BackgroundDecor";
 import HeroSection from "@/components/user/home/HeroSection";
+import { Navigation } from "@/components/user/home/navigation/navigation";
 
 export default function HomePage() {
   const [clubs, setClubs] = useState<ClubApiRow[]>([]);

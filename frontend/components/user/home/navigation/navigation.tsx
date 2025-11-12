@@ -5,17 +5,26 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { Menu, X, User, Bell } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { getCookie } from "cookies-next";
+import NotificationMenu from "./NotificationMenu";
+import UserMenu from "./UserMenu";
 
 export function Navigation() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [hasToken, setHasToken] = useState(false);
+
+  useEffect(() => {
+    const token = getCookie("token");
+    setHasToken(!!token);
+  }, []);
 
   const navItems = [
-    { href: "/user", label: "Home", labelTh: "หน้าแรก" },
-    { href: "/user/club", label: "Club", labelTh: "ชมรม" },
-    { href: "/user/activities", label: "Activities", labelTh: "กิจกรรม" },
+    { href: "/user", label: "Home" },
+    { href: "/user/club", label: "Club" },
+    { href: "/user/activities", label: "Activities" },
   ];
 
   return (
@@ -40,7 +49,7 @@ export function Navigation() {
             </Link>
           </div>
 
-          {/* Desktop Navigation - Absolutely Centered */}
+          {/* Desktop Navigation */}
           <div className="hidden md:flex items-center justify-center gap-8 absolute left-1/2 -translate-x-1/2 h-16">
             {navItems.map((item) => {
               const isActive = pathname === item.href;
@@ -73,22 +82,26 @@ export function Navigation() {
 
           {/* Right Actions */}
           <div className="flex items-center gap-2 shrink-0 z-10">
-            <Button variant="ghost" size="icon" className="hidden md:flex">
-              <Bell className="w-5 h-5" />
-            </Button>
-            <Button variant="ghost" size="icon" className="hidden md:flex">
-              <User className="w-5 h-5" />
-            </Button>
-            <Button
-              asChild
-              variant="default"
-              size="sm"
-              className="hidden md:flex"
-            >
-              <Link href="/user/auth/login">Login</Link>
-            </Button>
+            {hasToken ? (
+              <>
+                <div className="hidden md:flex">
+                  <NotificationMenu />
+                </div>
+                <div className="hidden md:flex">
+                  <UserMenu />
+                </div>
+              </>
+            ) : (
+              <Button
+                asChild
+                variant="default"
+                size="sm"
+                className="hidden md:flex"
+              >
+                <Link href="/user/auth/login">Login</Link>
+              </Button>
+            )}
 
-            {/* Mobile Menu Button */}
             <Button
               variant="ghost"
               size="icon"
@@ -131,13 +144,27 @@ export function Navigation() {
                 );
               })}
               <div className="flex gap-2 pt-2 border-t border-border">
-                <Button variant="ghost" size="sm" className="flex-1">
-                  <Bell className="w-4 h-4 mr-2" />
-                  Notifications
-                </Button>
-                <Button variant="default" size="sm" className="flex-1">
-                  Login
-                </Button>
+                {hasToken ? (
+                  <>
+                    <Button variant="ghost" size="sm" className="flex-1">
+                      <Bell className="w-4 h-4 mr-2" />
+                      Notifications
+                    </Button>
+                    <Button variant="ghost" size="sm" className="flex-1">
+                      <User className="w-4 h-4 mr-2" />
+                      Profile
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    asChild
+                    variant="default"
+                    size="sm"
+                    className="flex-1"
+                  >
+                    <Link href="/user/auth/login">Login</Link>
+                  </Button>
+                )}
               </div>
             </div>
           </motion.div>
