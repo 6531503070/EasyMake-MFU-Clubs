@@ -36,6 +36,12 @@ export type ActivityManageView = {
   }[];
 };
 
+export type ActivityFeedItem = ActivityApi & {
+  club_name?: string;
+  club_cover_image_url?: string;
+  registered?: number;
+};
+
 export async function getClubActivities(clubId: string): Promise<ClubActivityListItem[]> {
   const data = await authedFetch(`/clubs/${clubId}/activities/mine`, { method: "GET" });
   const list = (data.activities || []) as any[];
@@ -144,4 +150,13 @@ export async function unregisterFromActivity(activityId: string) {
 
 export async function listMyRegistrations() {
   return authedFetch(`/activities/my/registrations`, { method: "GET" });
+}
+
+export async function getPublicActivitiesFeed(): Promise<ActivityFeedItem[]> {
+  const res = await fetch(`${BASE_URL}/activities/public/feed`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Failed to load activities feed (${res.status})`);
+  const data = await res.json();
+  return (data.activities || []) as ActivityFeedItem[];
 }

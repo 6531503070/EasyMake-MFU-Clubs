@@ -144,13 +144,25 @@ export const ActivityController = {
       next(err);
     }
   },
-  listMyRegistrations: async (req: Request, res: Response, next: NextFunction) => {
+  listMyRegistrations: async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const userId = (req as any).user.id;
       const regs = await ActivityService.listMyRegistrations(userId);
       res.json({ registrations: regs });
     } catch (err) {
       next(err);
+    }
+  },
+  listPublicFeed: async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const activities = await ActivityService.listPublicFeed();
+      res.json({ activities });
+    } catch (err) {
+      next(err as any);
     }
   },
 };

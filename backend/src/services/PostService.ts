@@ -129,11 +129,77 @@ async function findById(postId: string) {
   return post;
 }
 
+async function toggleLike(postId: string, userId: string) {
+  const post = await ClubPostModel.findById(postId);
+  if (!post) throw new HttpError(404, "Post not found");
+
+  const uid = String(userId);
+  const currentLikes = Array.isArray((post as any).likes) ? (post as any).likes : [];
+  const hasLiked = currentLikes.includes(uid);
+
+  let nextLikes: string[];
+  if (hasLiked) {
+    nextLikes = currentLikes.filter((id: string) => id !== uid);
+  } else {
+    nextLikes = [...currentLikes, uid];
+  }
+
+  (post as any).likes = nextLikes;
+  await post.save();
+
+  return {
+    liked: !hasLiked,
+    likeCount: nextLikes.length,
+  };
+}
+
+async function listPublicFeed(userId: string) {
+  const posts = await ClubPostModel.find(
+    { is_deleted: false, published: true },
+    "_id club_id title content images created_at likes"
+  )
+    .sort({ created_at: -1 })
+    .limit(50)
+    .lean();
+
+  const clubIds = [...new Set(posts.map((p: any) => p.club_id))];
+
+  const clubs = await ClubModel.find(
+    { _id: { $in: clubIds } },
+    "_id name cover_image_url"
+  ).lean();
+
+  const clubMap = new Map<string, any>();
+  clubs.forEach((c: any) => clubMap.set(String(c._id), c));
+
+  return posts.map((p: any) => {
+    const club = clubMap.get(String(p.club_id));
+    const likesArr = Array.isArray(p.likes) ? p.likes : [];
+    const likeCount = likesArr.length;
+    const likedByMe = likesArr.includes(String(userId));
+
+    return {
+      _id: p._id,
+      title: p.title,
+      content: p.content,
+      images: p.images || [],
+      created_at: p.created_at,
+      club_id: p.club_id,
+      club_name: club?.name || "",
+      club_cover_image_url: club?.cover_image_url || "",
+      likeCount,
+      likedByMe,
+    };
+  });
+}
+
 export const PostService = {
   createPost,
   listPostsPublic,
   listPostsForClubStaff,
   updatePost,
   deletePost,
-  findById
+  findById,
+  listPublicFeed,
+  toggleLike,
 };

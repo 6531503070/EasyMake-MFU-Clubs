@@ -7,6 +7,7 @@ const ClubPostSchema = new mongoose.Schema(
 
     title: { type: String, required: true },
     content: { type: String, default: "" },
+    likes: { type: [String], default: [] },
 
     images: { type: [String], default: [] },
 

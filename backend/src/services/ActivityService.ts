@@ -372,6 +372,66 @@ async function listMyRegistrations(userId: string) {
   }));
 }
 
+async function listPublicFeed() {
+  const now = new Date();
+
+  const acts = await ActivityModel.find(
+    {
+      status: "published",
+      start_time: { $gte: now },
+    },
+    "_id title subtitle description start_time end_time location capacity images status club_id"
+  )
+    .sort({ start_time: 1 })
+    .limit(50)
+    .lean();
+
+  const ids = acts.map((a: any) => a._id);
+
+  const regs = await ActivityRegistrationModel.aggregate([
+    { $match: { activity_id: { $in: ids }, status: { $ne: "cancelled" } } },
+    { $group: { _id: "$activity_id", count: { $sum: 1 } } },
+  ]);
+
+  const regMap = new Map<string, number>();
+  regs.forEach((r: any) => {
+    regMap.set(String(r._id), r.count);
+  });
+
+  const clubIds = [...new Set(acts.map((a: any) => String(a.club_id)))];
+
+  const clubs = await ClubModel.find(
+    { _id: { $in: clubIds } },
+    "_id name cover_image_url"
+  ).lean();
+
+  const clubMap = new Map<string, any>();
+  clubs.forEach((c: any) => {
+    clubMap.set(String(c._id), c);
+  });
+
+  return acts.map((a: any) => {
+    const club = clubMap.get(String(a.club_id));
+
+    return {
+      _id: a._id,
+      title: a.title,
+      subtitle: a.subtitle || "",
+      description: a.description || "",
+      start_time: a.start_time,
+      end_time: a.end_time,
+      location: a.location,
+      capacity: a.capacity,
+      images: a.images || [],
+      status: a.status,
+      club_id: a.club_id,
+      club_name: club?.name || "",
+      club_cover_image_url: club?.cover_image_url || "",
+      registered: regMap.get(String(a._id)) || 0,
+    };
+  });
+}
+
 export const ActivityService = {
   createActivity,
   updateDetails,
@@ -383,4 +443,5 @@ export const ActivityService = {
   getActivityManageView,
   listPublicByClub,
   listMyRegistrations,
+  listPublicFeed,
 };

@@ -11,12 +11,17 @@ export type StaffPostRow = {
 
 export type PublicPostRow = {
   _id: string;
+  club_id: string;
   title: string;
   content: string;
   images: string[];
   published: boolean;
   created_at: string;
   updated_at: string;
+  club_name?: string;
+  club_cover_image_url?: string;
+  likeCount?: number;
+  likedByMe?: boolean;
 };
 
 export async function getStaffPosts(clubId: string): Promise<StaffPostRow[]> {
@@ -108,3 +113,20 @@ export async function deletePost(postId: string) {
   const data = await authedFetch(`/posts/${postId}`, { method: "DELETE" });
   return data.post;
 }
+
+// Get feed every post club
+export async function getPublicPostsFeed(): Promise<PublicPostRow[]> {
+  const data = await authedFetch(`/posts/feed`, {
+    method: "GET",
+  });
+  return data.posts as PublicPostRow[];
+}
+
+// toggle like
+export async function togglePostLike(postId: string) {
+  const data = await authedFetch(`/posts/${postId}/like`, {
+    method: "POST",
+  });
+  return data as { liked: boolean; likeCount: number };
+}
+

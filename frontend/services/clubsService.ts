@@ -67,6 +67,13 @@ export type ClubDetail = {
   members?: ClubMemberSnapshot[];
 };
 
+export type FollowingClub = {
+  _id: string;
+  name: string;
+  cover_image_url?: string;
+  tagline?: string;
+};
+
 export async function getAllClubs(): Promise<{ clubs: ClubApiRow[] }> {
   const data = await authedFetch("/clubs", { method: "GET" });
   return data as { clubs: ClubApiRow[] };
@@ -157,4 +164,11 @@ export async function followClub(clubId: string) {
 
 export async function unfollowClub(clubId: string) {
   return authedFetch(`/clubs/${clubId}/unfollow`, { method: "POST" });
+}
+
+export async function getMyFollowingClubs(): Promise<FollowingClub[]> {
+  const data = await authedFetch(`/me/following/clubs`, {
+    method: "GET",
+  });
+  return (data.clubs || []) as FollowingClub[];
 }

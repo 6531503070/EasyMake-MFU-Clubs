@@ -7,6 +7,22 @@ import { upload } from "../middleware/upload";
 
 const router = Router();
 
+// GET /api/posts/feed
+router.get(
+  "/feed",
+  authRequired,
+  requireRole("user", "club-leader", "co-leader", "super-admin"),
+  PostController.listPostsFeedPublic
+);
+
+// toggle like
+router.post(
+  "/:postId/like",
+  authRequired,
+  requireRole("user", "club-leader", "co-leader", "super-admin"),
+  PostController.toggleLike
+);
+
 // create post
 router.post(
   "/clubs/:clubId/posts",

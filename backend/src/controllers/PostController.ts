@@ -157,4 +157,25 @@ export const PostController = {
       next(err);
     }
   },
+    listPostsFeedPublic: async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = (req as any).user.id as string; // ต้อง login
+      const posts = await PostService.listPublicFeed(userId);
+      res.json({ posts });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  toggleLike: async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = (req as any).user.id as string;
+      const { postId } = req.params;
+      const result = await PostService.toggleLike(postId, userId);
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  },
+
 };

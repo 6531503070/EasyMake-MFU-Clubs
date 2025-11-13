@@ -77,4 +77,10 @@ router.get(
   ActivityController.listMyRegistrations
 )
 
+// public feed every club
+router.get(
+  "/public/feed",
+  ActivityController.listPublicFeed
+);
+
 export default router;
