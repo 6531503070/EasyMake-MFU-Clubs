@@ -21,7 +21,7 @@ router.get("/public", async (_req, res, next) => {
   try {
     const clubs = await ClubModel.find(
       { status: "active" },
-      "_id name tagline status founding_members"
+      "_id name tagline status founding_members cover_image_url"
     )
       .sort({ created_at: -1 })
       .lean();
@@ -32,6 +32,7 @@ router.get("/public", async (_req, res, next) => {
       tagline: c.tagline || "",
       status: c.status,
       members: c.founding_members || [],
+      cover_image_url: c.cover_image_url || null,
     }));
 
     res.json({ clubs: formatted });
@@ -39,6 +40,8 @@ router.get("/public", async (_req, res, next) => {
     next(err);
   }
 });
+
+router.get("/:clubId/public-activities", ActivityController.listPublicByClub);
 
 // super-admin list all clubs
 router.get(
@@ -174,5 +177,28 @@ router.patch(
 
 // serve cover image
 router.get("/:clubId/cover-image", ClubController.getClubCoverImage);
+
+router.get(
+  "/:clubId/follow-status",
+  authRequired,
+  requireRole("user", "club-leader", "co-leader", "super-admin"),
+  ClubController.getFollowStatus
+);
+
+// follow club
+router.post(
+  "/:clubId/follow",
+  authRequired,
+  requireRole("user", "club-leader", "co-leader", "super-admin"),
+  ClubController.followClub
+);
+
+// unfollow club
+router.post(
+  "/:clubId/unfollow",
+  authRequired,
+  requireRole("user", "club-leader", "co-leader", "super-admin"),
+  ClubController.unfollowClub
+);
 
 export default router;

@@ -5,10 +5,10 @@ import Link from "next/link";
 import Image from "next/image";
 import { Users } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import type { ClubApiRow } from "@/services/clubsService";
+import type { ClubPublic } from "@/services/clubsService";
 
 type Props = {
-  clubs: ClubApiRow[];
+  clubs: ClubPublic[];
   loading: boolean;
   error?: string | null;
 };
@@ -62,7 +62,7 @@ export default function FeaturedClubsSection({ clubs, loading, error }: Props) {
                   <Card className="bg-background border-border hover:border-primary transition-all duration-300 overflow-hidden group cursor-pointer">
                     <div className="relative h-48 overflow-hidden">
                       <Image
-                        src={"/club-placeholder.jpg"}
+                        src={club.cover_image_url || "/placeholder.svg"}
                         alt={club.name}
                         fill
                         className="object-cover group-hover:scale-110 transition-transform duration-500"

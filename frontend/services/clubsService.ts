@@ -17,17 +17,78 @@ export type ClubApiRow = {
   }>;
 };
 
+export type PublicActivity = {
+  _id: string;
+  title: string;
+  subtitle?: string;
+  description?: string;
+  location?: string;
+  start_time: string;
+  end_time?: string;
+  capacity: number;
+  registered: number;
+  images: string[];
+  status: "published" | "cancelled";
+  is_registered?: boolean;
+  registration_locked_for_me?: boolean;
+};
+
+export type ClubPublic = {
+  _id: string;
+  name: string;
+  tagline?: string;
+  status: "active" | "suspended";
+  cover_image_url?: string;
+  members?: ClubMemberSnapshot[];
+};
+
+export type ClubContactChannel = {
+  platform: string;
+  handle: string;
+};
+
+export type ClubMemberSnapshot = {
+  user_id?: string;
+  full_name: string;
+  email: string;
+  citizen_id: string;
+};
+
+export type ClubDetail = {
+  _id: string;
+  name: string;
+  description?: string;
+  tagline?: string;
+  cover_image_url?: string;
+  status: "active" | "suspended";
+  is_following?: boolean;
+   contact_channels?: ClubContactChannel[];
+  members?: ClubMemberSnapshot[];
+};
+
 export async function getAllClubs(): Promise<{ clubs: ClubApiRow[] }> {
   const data = await authedFetch("/clubs", { method: "GET" });
   return data as { clubs: ClubApiRow[] };
 }
 
-export async function getPublicClubs(): Promise<{ clubs: ClubApiRow[] }> {
+export async function getPublicClubs(): Promise<{ clubs: ClubPublic[] }> {
   const res = await fetch(`${BASE_URL}/clubs/public`, { cache: "no-store" });
   if (!res.ok) {
     const msg = await res.text().catch(() => "");
     throw new Error(msg || `Failed to load clubs (${res.status})`);
   }
+  return res.json() as Promise<{ clubs: ClubPublic[] }>;
+}
+
+export async function getClubPublic(clubId: string): Promise<{ club: ClubDetail }> {
+  const res = await fetch(`${BASE_URL}/clubs/${clubId}`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`Failed to load club (${res.status})`);
+  return res.json();
+}
+
+export async function getClubPublicActivities(clubId: string): Promise<{ activities: PublicActivity[] }> {
+  const res = await fetch(`${BASE_URL}/activities/public/by-club/${clubId}`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`Failed to load activities (${res.status})`);
   return res.json();
 }
 
@@ -78,4 +139,21 @@ export async function updateClubWithLeader(
     method: "PATCH",
     body: JSON.stringify(payload),
   });
+}
+
+export async function getClubFollowStatus(
+  clubId: string
+): Promise<{ isFollowing: boolean }> {
+  const data = await authedFetch(`/clubs/${clubId}/follow-status`, {
+    method: "GET",
+  });
+  return data as { isFollowing: boolean };
+}
+
+export async function followClub(clubId: string) {
+  return authedFetch(`/clubs/${clubId}/follow`, { method: "POST" });
+}
+
+export async function unfollowClub(clubId: string) {
+  return authedFetch(`/clubs/${clubId}/unfollow`, { method: "POST" });
 }

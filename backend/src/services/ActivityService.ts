@@ -59,27 +59,38 @@ async function registerToActivity(userId: string, activityId: string) {
   const activity = await ActivityModel.findById(activityId);
   if (!activity) throw new HttpError(404, "Activity not found");
 
-  if (activity.status !== "published")
+  if (activity.status !== "published") {
     throw new HttpError(400, "Activity not open for registration");
+  }
 
-  if (new Date(activity.start_time).getTime() <= Date.now())
+  if (new Date(activity.start_time).getTime() <= Date.now()) {
     throw new HttpError(400, "Registration closed (activity already started)");
+  }
+
+  const lastReg = await ActivityRegistrationModel.findOne({
+    activity_id: activityId,
+    user_id: userId,
+  }).sort({ _id: -1 });
+
+  if (lastReg) {
+    if (lastReg.status === "cancelled") {
+      throw new HttpError(
+        400,
+        "You already registered this activity and later cancelled. You can register only once."
+      );
+    } else {
+      throw new HttpError(400, "You are already registered for this activity.");
+    }
+  }
 
   const activeCount = await ActivityRegistrationModel.countDocuments({
     activity_id: activityId,
     status: { $ne: "cancelled" },
   });
 
-  if (activeCount >= activity.capacity)
+  if (activeCount >= activity.capacity) {
     throw new HttpError(400, "Activity full");
-
-  const existing = await ActivityRegistrationModel.findOne({
-    activity_id: activityId,
-    user_id: userId,
-    status: { $ne: "cancelled" },
-  });
-
-  if (existing) throw new HttpError(400, "Already registered");
+  }
 
   const reg = await ActivityRegistrationModel.create({
     activity_id: activityId,
@@ -90,7 +101,6 @@ async function registerToActivity(userId: string, activityId: string) {
   });
 
   const club = await ClubModel.findById(activity.club_id);
-
   if (club) {
     await NotificationService.sendToUser(String(club.leader_user_id), {
       type: "new_registration",
@@ -103,7 +113,9 @@ async function registerToActivity(userId: string, activityId: string) {
   return reg;
 }
 
-async function storeFilesToGridFS(files: Express.Multer.File[]): Promise<string[]> {
+async function storeFilesToGridFS(
+  files: Express.Multer.File[]
+): Promise<string[]> {
   if (!files || files.length === 0) return [];
   const bucket = getGridFsBucket();
   const urls: string[] = [];
@@ -312,6 +324,53 @@ async function getActivityManageView(staffUserId: string, activityId: string) {
     students,
   };
 }
+async function listPublicByClub(clubId: string) {
+  const now = new Date();
+  const acts = await ActivityModel.find(
+    { club_id: clubId, status: "published", start_time: { $gte: now } },
+    "_id title subtitle description start_time end_time location capacity images status"
+  )
+    .sort({ start_time: 1 })
+    .lean();
+
+  const ids = acts.map((a) => a._id);
+  const regs = await ActivityRegistrationModel.aggregate([
+    { $match: { activity_id: { $in: ids }, status: { $ne: "cancelled" } } },
+    { $group: { _id: "$activity_id", count: { $sum: 1 } } },
+  ]);
+  const regMap = new Map<string, number>();
+  regs.forEach((r: any) => regMap.set(String(r._id), r.count));
+
+  return acts.map((a) => ({
+    _id: a._id,
+    title: a.title,
+    subtitle: a.subtitle || "",
+    description: a.description || "",
+    start_time: a.start_time,
+    end_time: a.end_time,
+    location: a.location,
+    capacity: a.capacity,
+    registered: regMap.get(String(a._id)) || 0,
+    images: a.images || [],
+    status: a.status,
+  }));
+}
+
+async function listMyRegistrations(userId: string) {
+  const regs = await ActivityRegistrationModel.find(
+    { user_id: userId },
+    "_id activity_id status checkin_at cancelled_at created_at"
+  ).lean();
+
+  return regs.map((r: any) => ({
+    _id: r._id,
+    activity_id: r.activity_id,
+    status: r.status,
+    checkin_at: r.checkin_at,
+    cancelled_at: r.cancelled_at,
+    created_at: r.created_at,
+  }));
+}
 
 export const ActivityService = {
   createActivity,
@@ -322,4 +381,6 @@ export const ActivityService = {
   checkIn,
   listActivitiesForClub,
   getActivityManageView,
+  listPublicByClub,
+  listMyRegistrations,
 };

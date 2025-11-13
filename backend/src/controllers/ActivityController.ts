@@ -135,4 +135,22 @@ export const ActivityController = {
       next(err);
     }
   },
+  listPublicByClub: async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { clubId } = req.params;
+      const activities = await ActivityService.listPublicByClub(clubId);
+      res.json({ activities });
+    } catch (err) {
+      next(err);
+    }
+  },
+  listMyRegistrations: async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = (req as any).user.id;
+      const regs = await ActivityService.listMyRegistrations(userId);
+      res.json({ registrations: regs });
+    } catch (err) {
+      next(err);
+    }
+  },
 };

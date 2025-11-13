@@ -11,19 +11,12 @@ export default function Providers({ children }: { children: ReactNode }) {
   useEffect(() => {
     setMounted(true);
     if (!clientId) {
-      // ถ้า env หาย ให้เห็นชัดในคอนโซล
       console.error("Missing NEXT_PUBLIC_GOOGLE_CLIENT_ID");
     }
-    // debug: ช่วยไล่ 403 origin ได้
-    try {
-      console.log("[GSI] clientId:", clientId, "origin:", window.location.origin);
-    } catch {}
   }, [clientId]);
 
-  // ป้องกัน render ก่อน hydrate (เลี่ยง flash/เตือน)
   if (!mounted) return null;
 
-  // ถ้าไม่มี clientId ก็ยังให้ธีมทำงาน แต่อย่างน้อยไม่ครอบ GoogleOAuthProvider
   if (!clientId) {
     return (
       <ThemeProvider attribute="class" defaultTheme="light">

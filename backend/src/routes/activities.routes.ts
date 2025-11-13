@@ -17,8 +17,6 @@ router.post(
   ActivityController.createActivity
 );
 
-
-
 // (optional) update details + append images
 router.patch(
   "/:id/details",
@@ -65,5 +63,18 @@ router.get(
   requireRole("club-leader", "co-leader", "super-admin"),
   ActivityController.getActivityManageView
 );
+
+// list public activities by club
+router.get(
+  "/public/by-club/:clubId",
+  ActivityController.listPublicByClub
+);
+
+router.get(
+  "/my/registrations",
+  authRequired,
+  requireRole("user", "club-leader", "co-leader", "super-admin"),
+  ActivityController.listMyRegistrations
+)
 
 export default router;

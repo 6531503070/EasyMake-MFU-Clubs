@@ -79,9 +79,19 @@ async function createClub(
 }
 
 async function getClubPublic(clubId: string) {
-  const club = await ClubModel.findById(clubId);
+  const club = await ClubModel.findById(clubId).lean();
   if (!club) throw new HttpError(404, "Club not found");
-  return club;
+
+  return {
+    _id: club._id,
+    name: club.name,
+    description: club.description || "",
+    tagline: club.tagline || "",
+    cover_image_url: club.cover_image_url || "",
+    status: club.status,
+    contact_channels: club.contact_channels || [],
+    members: club.founding_members || [],
+  };
 }
 
 /* ================= LEADER/CO-LEADER SELF-EDIT PROFILE ================= */
@@ -599,6 +609,50 @@ async function updateClubWithLeader(
   return { club };
 }
 
+async function followClub(userId: string, clubId: string) {
+  const club = await ClubModel.findById(clubId).lean();
+  if (!club) {
+    throw new HttpError(404, "Club not found");
+  }
+
+  const existingMember = await ClubFollowerModel.findOne({
+    club_id: clubId,
+    user_id: userId,
+    role_at_club: "member",
+  }).lean();
+
+  if (existingMember) {
+    return;
+  }
+
+  await ClubFollowerModel.create({
+    club_id: clubId,
+    user_id: userId,
+    role_at_club: "member",
+  });
+}
+
+async function unfollowClub(userId: string, clubId: string) {
+  await ClubFollowerModel.deleteOne({
+    club_id: clubId,
+    user_id: userId,
+    role_at_club: "member",
+  });
+}
+
+
+async function getFollowStatus(userId: string, clubId: string) {
+  const rel = await ClubFollowerModel.findOne({
+    club_id: clubId,
+    user_id: userId,
+    role_at_club: "member",
+  }).lean();
+
+  return !!rel;
+}
+
+
+
 export const ClubService = {
   createClub,
   getClubPublic,
@@ -613,4 +667,7 @@ export const ClubService = {
   listAllClubs,
   createClubWithLeader,
   updateClubWithLeader,
+  followClub,
+  unfollowClub,
+  getFollowStatus,
 };

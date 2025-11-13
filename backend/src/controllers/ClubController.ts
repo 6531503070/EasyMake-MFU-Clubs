@@ -139,4 +139,41 @@ export const ClubController = {
       next(err as any);
     }
   },
+   // ===== NEW: follow / unfollow / status =====
+  followClub: async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = (req as any).user.id;
+    const { clubId } = req.params;
+    await ClubService.followClub(userId, clubId);
+    res.json({ isFollowing: true });
+  } catch (err: unknown) {
+    console.error("followClub error", err);
+    next(err as any);
+  }
+},
+
+unfollowClub: async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = (req as any).user.id;
+    const { clubId } = req.params;
+    await ClubService.unfollowClub(userId, clubId);
+    res.json({ isFollowing: false });
+  } catch (err: unknown) {
+    console.error("unfollowClub error", err);
+    next(err as any);
+  }
+},
+
+getFollowStatus: async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = (req as any).user.id;
+    const { clubId } = req.params;
+    const isFollowing = await ClubService.getFollowStatus(userId, clubId);
+    res.json({ isFollowing });
+  } catch (err: unknown) {
+    console.error("getFollowStatus error", err);
+    next(err as any);
+  }
+},
+
 };

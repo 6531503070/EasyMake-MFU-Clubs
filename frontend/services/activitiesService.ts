@@ -1,4 +1,4 @@
-import { authedFetch } from "./http";
+import { authedFetch, BASE_URL } from "./http";
 
 export type ActivityApi = {
   _id: string;
@@ -39,7 +39,6 @@ export type ActivityManageView = {
 export async function getClubActivities(clubId: string): Promise<ClubActivityListItem[]> {
   const data = await authedFetch(`/clubs/${clubId}/activities/mine`, { method: "GET" });
   const list = (data.activities || []) as any[];
-
   return list.map((a, i) => ({
     _id: a._id ?? a.id ?? `tmp-${i}-${a.title ?? "no-title"}-${a.start_time ?? "no-time"}`,
     title: a.title ?? "",
@@ -53,6 +52,12 @@ export async function getClubActivities(clubId: string): Promise<ClubActivityLis
   })) as ClubActivityListItem[];
 }
 
+export async function getPublicActivitiesByClub(clubId: string): Promise<ActivityApi[]> {
+  const res = await fetch(`${BASE_URL}/activities/public/by-club/${clubId}`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`Failed to load activities (${res.status})`);
+  const data = await res.json();
+  return (data.activities || []) as ActivityApi[];
+}
 
 export async function createActivity(
   clubId: string,
