@@ -37,6 +37,7 @@ export type ClubPublic = {
   _id: string;
   name: string;
   tagline?: string;
+  description?: string;
   status: "active" | "suspended";
   cover_image_url?: string;
   members?: ClubMemberSnapshot[];

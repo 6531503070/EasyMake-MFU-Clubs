@@ -21,7 +21,7 @@ router.get("/public", async (_req, res, next) => {
   try {
     const clubs = await ClubModel.find(
       { status: "active" },
-      "_id name tagline status founding_members cover_image_url"
+      "_id name tagline status founding_members cover_image_url description"
     )
       .sort({ created_at: -1 })
       .lean();
@@ -30,6 +30,7 @@ router.get("/public", async (_req, res, next) => {
       _id: c._id,
       name: c.name,
       tagline: c.tagline || "",
+      description: c.description || "",
       status: c.status,
       members: c.founding_members || [],
       cover_image_url: c.cover_image_url || null,

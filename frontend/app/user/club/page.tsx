@@ -59,7 +59,7 @@ export default function ClubPage() {
       </div>
       <div className="fixed inset-0 bg-gradient-to-b from-background/40 via-background/70 to-background z-0" />
 
-      <section className="relative h-[40vh] min-h-[320px] flex items-end justify-center overflow-hidden pt-16 z-10">
+      <section className="relative h-[28vh] min-h-[240px] flex items-end justify-center overflow-hidden pt-6 z-10">
         <div className="container mx-auto px-4 pb-6 text-center">
           <motion.h1 initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} className="font-playfair text-5xl font-bold">
             MFU <span className="text-primary">Clubs</span>
@@ -73,8 +73,8 @@ export default function ClubPage() {
         </div>
       </section>
 
-      <section className="relative py-12 z-10">
-        <div className="container mx-auto px-4">
+      <section className="relative py-3 z-10">
+        <div className="container mx-auto px-8">
           {loading ? (
             <div className="text-center py-20 text-muted-foreground">Loading...</div>
           ) : (

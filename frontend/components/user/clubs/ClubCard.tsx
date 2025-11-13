@@ -12,10 +12,19 @@ export default function ClubCard({
   viewMode,
   index,
 }: {
-  club: { _id: string; name: string; tagline?: string; cover_image_url?: string };
+  club: {
+    _id: string;
+    name: string;
+    tagline?: string;
+    description?: string;
+    cover_image_url?: string;
+    members?: { full_name: string }[];
+  };
   viewMode: "grid" | "list";
   index: number;
 }) {
+  const memberCount = club.members?.length ?? 0;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -28,7 +37,12 @@ export default function ClubCard({
             viewMode === "list" ? "flex flex-row" : ""
           }`}
         >
-          <div className={`relative overflow-hidden ${viewMode === "grid" ? "h-56" : "w-48 h-full min-h-[200px]"}`}>
+          {/* ===== Club Image ===== */}
+          <div
+            className={`relative overflow-hidden ${
+              viewMode === "grid" ? "h-56" : "w-48 h-full min-h-[200px]"
+            }`}
+          >
             <Image
               src={club.cover_image_url || "/placeholder.svg"}
               alt={club.name}
@@ -38,18 +52,39 @@ export default function ClubCard({
             <div className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent" />
           </div>
 
-          <CardContent className={`p-5 space-y-3 ${viewMode === "list" ? "flex-1" : ""}`}>
-            <div className="space-y-2">
-              <h3 className="font-semibold text-xl line-clamp-1">{club.name}</h3>
-              {club.tagline && <p className="text-sm text-muted-foreground line-clamp-2">{club.tagline}</p>}
+          {/* ===== Card Content ===== */}
+          <CardContent
+            className={`p-5 space-y-3 ${viewMode === "list" ? "flex-1" : ""}`}
+          >
+            {/* Title / Tagline */}
+            <div className="space-y-1">
+              <h3 className="font-semibold text-xl line-clamp-1">
+                {club.name}
+              </h3>
+
+              {(club.tagline || club.description) && (
+                <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+                  {club.tagline || club.description}
+                </p>
+              )}
             </div>
 
+            {/* Members + Action */}
             <div className="flex items-center justify-between pt-2 border-t border-border">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Users className="w-4 h-4 text-primary" />
-                <span>Club</span>
+                <span>
+                  {memberCount > 0
+                    ? `${memberCount} members`
+                    : "No member info"}
+                </span>
               </div>
-              <Button variant="ghost" size="sm" className="text-primary hover:bg-primary/10">
+
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-primary hover:bg-primary/10"
+              >
                 View Club
               </Button>
             </div>
