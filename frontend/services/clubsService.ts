@@ -53,6 +53,7 @@ export type ClubMemberSnapshot = {
   full_name: string;
   email: string;
   citizen_id: string;
+  joined_at?: string;
 };
 
 export type ClubDetail = {
@@ -172,4 +173,21 @@ export async function getMyFollowingClubs(): Promise<FollowingClub[]> {
     method: "GET",
   });
   return (data.clubs || []) as FollowingClub[];
+}
+
+export type ClubMemberRow = {
+  user_id?: string;
+  full_name: string;
+  email: string;
+  citizen_id?: string;
+  joined_at?: string;
+};
+
+export async function getClubMembers(
+  clubId: string
+): Promise<ClubMemberRow[]> {
+  const data = await authedFetch(`/clubs/${clubId}/followers`, {
+    method: "GET",
+  });
+  return (data.members || []) as ClubMemberRow[];
 }

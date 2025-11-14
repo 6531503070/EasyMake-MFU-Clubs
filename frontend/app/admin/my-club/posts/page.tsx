@@ -24,6 +24,7 @@ const pageVariants: Variants = {
     transition: { when: "beforeChildren", staggerChildren: 0.08 },
   },
 };
+
 const headerVariants: Variants = {
   hidden: { opacity: 0, y: 16 },
   show: {
@@ -39,13 +40,29 @@ export default function ClubPostsPage() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
+  // สำหรับคุมปุ่ม Create ให้กดได้เฉพาะตอนฟอร์ม valid
+  const [canSubmitCreate, setCanSubmitCreate] = useState(false);
+
   // 🔔 Global Alert state
   const [alert, setAlert] = useState<{
     type: "success" | "error" | null;
     message: string;
   }>({ type: null, message: "" });
 
-  const showAlert = (type: "success" | "error", message: string, ms = 3000) => {
+  // กำลังยิง API อยู่ไหม (create / edit / delete)
+  const [confirming, setConfirming] = useState(false);
+
+  // ใช้เก็บ callback submit ของฟอร์ม (ให้ dialog เรียกตอนกด Confirm)
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [mode, setMode] = useState<"create" | "edit" | "delete" | null>(null);
+  const [selected, setSelected] = useState<StaffPostRow | null>(null);
+  const submitRef = useRef<(() => void) | null>(null);
+
+  const showAlert = (
+    type: "success" | "error",
+    message: string,
+    ms = 3000
+  ) => {
     setAlert({ type, message });
     if (ms > 0) {
       window.clearTimeout((showAlert as any)._t);
@@ -54,11 +71,6 @@ export default function ClubPostsPage() {
       }, ms);
     }
   };
-
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [mode, setMode] = useState<"create" | "edit" | "delete" | null>(null);
-  const [selected, setSelected] = useState<StaffPostRow | null>(null);
-  const submitRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     const cid = getCookie("clubId");
@@ -88,25 +100,33 @@ export default function ClubPostsPage() {
     setSelected(null);
     setMode("create");
     setDialogOpen(true);
+    setCanSubmitCreate(false); // reset state form valid
   }
+
   function openEdit(p: StaffPostRow) {
     setSelected(p);
     setMode("edit");
     setDialogOpen(true);
   }
+
   function openDelete(p: StaffPostRow) {
     setSelected(p);
     setMode("delete");
     setDialogOpen(true);
   }
+
   function closeDialog() {
     setDialogOpen(false);
     setMode(null);
     setSelected(null);
     submitRef.current = null;
+    setConfirming(false);
+    setCanSubmitCreate(false);
   }
 
   // ---------- handlers ----------
+
+  // CREATE (ใช้ createPostMultipart เดิม เพื่อให้ส่งเมลเหมือนเดิม แต่ optimisitc update)
   async function handleCreate(data: {
     title: string;
     content?: string;
@@ -114,19 +134,27 @@ export default function ClubPostsPage() {
   }) {
     if (!clubId) return;
     try {
-      await createPostMultipart(clubId, {
+      setConfirming(true);
+
+      const created = await createPostMultipart(clubId, {
         title: data.title,
         content: data.content,
         images: data.images,
       });
+
+      // optimistic: แทรกโพสต์ใหม่ไว้บนสุด
+      setPosts((prev) => [created as StaffPostRow, ...prev]);
+
       showAlert("success", "✅ Post created successfully!");
       closeDialog();
-      await reload(clubId);
     } catch (e: any) {
+      console.error(e);
       showAlert("error", e?.message || "Failed to create post.");
+      setConfirming(false);
     }
   }
 
+  // EDIT
   async function handleEdit(data: {
     title?: string;
     content?: string;
@@ -136,29 +164,61 @@ export default function ClubPostsPage() {
   }) {
     if (!clubId || !selected) return;
     try {
-      await updatePostMultipart(String(selected._id), data);
+      setConfirming(true);
+
+      const updated = await updatePostMultipart(String(selected._id), data);
+
+      setPosts((prev) =>
+        prev.map((p) =>
+          String(p._id) === String(updated._id)
+            ? { ...p, ...updated }
+            : p
+        )
+      );
+
       showAlert("success", "✅ Post updated successfully!");
       closeDialog();
-      await reload(clubId);
     } catch (e: any) {
+      console.error(e);
       showAlert("error", e?.message || "Failed to update post.");
+      setConfirming(false);
     }
   }
 
+  // DELETE
   async function handleDelete() {
     if (!clubId || !selected) return;
     try {
+      setConfirming(true);
+
       await deletePost(String(selected._id));
+
+      setPosts((prev) =>
+        prev.filter((p) => String(p._id) !== String(selected._id))
+      );
+
       showAlert("success", "🗑️ Post deleted successfully!");
       closeDialog();
-      await reload(clubId);
     } catch (e: any) {
+      console.error(e);
       showAlert("error", e?.message || "Failed to delete post.");
+      setConfirming(false);
     }
   }
 
+  // ตอนกดปุ่ม Confirm บน Dialog
   const handleConfirm =
-    mode === "delete" ? handleDelete : () => submitRef.current?.();
+    mode === "delete"
+      ? () => {
+        if (!confirming) handleDelete();
+      }
+      : () => {
+        if (!confirming) submitRef.current?.();
+      };
+
+  // ✅ เงื่อนไข disabled ของปุ่ม Confirm
+  const isConfirmDisabled =
+    confirming || (mode === "create" && !canSubmitCreate);
 
   return (
     <>
@@ -205,7 +265,11 @@ export default function ClubPostsPage() {
         )}
 
         {!err && (
-          <PostsTable posts={posts} onEdit={openEdit} onDelete={openDelete} />
+          <PostsTable
+            posts={posts}
+            onEdit={openEdit}
+            onDelete={openDelete}
+          />
         )}
       </motion.section>
 
@@ -231,20 +295,25 @@ export default function ClubPostsPage() {
             : ""
         }
         confirmLabel={
-          mode === "delete"
+          confirming
+            ? "Processing..."
+            : mode === "delete"
             ? "Delete Post"
             : mode === "edit"
             ? "Save Changes"
             : "Create Post"
         }
         confirmTone={mode === "delete" ? "danger" : "default"}
-        onClose={closeDialog}
+        onClose={confirming ? () => {} : closeDialog}
         onConfirm={handleConfirm}
+        confirmDisabled={isConfirmDisabled} // ✅ ตรงนี้สำคัญ
       >
         {mode === "create" && (
           <PostCreateForm
             registerSubmit={(fn) => (submitRef.current = fn)}
             onSubmit={handleCreate}
+            disabled={confirming}
+            onValidChange={setCanSubmitCreate}
           />
         )}
 
@@ -258,6 +327,7 @@ export default function ClubPostsPage() {
               images: selected.images ?? [],
             }}
             onSubmit={handleEdit}
+            disabled={confirming}
           />
         )}
 

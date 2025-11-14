@@ -22,10 +22,12 @@ export function PostEditForm({
   initial,
   onSubmit,
   registerSubmit,
+  disabled = false, 
 }: {
   initial: EditInitial;
   onSubmit?: (data: EditSubmit) => void;
   registerSubmit?: (fn: () => void) => void;
+  disabled?: boolean; 
 }) {
   const [title, setTitle] = useState(initial.title);
   const [content, setContent] = useState(initial.content);
@@ -36,12 +38,15 @@ export function PostEditForm({
   const [newFiles, setNewFiles] = useState<File[]>([]);
   const [newPreviews, setNewPreviews] = useState<string[]>([]);
   const fileRef = useRef<HTMLInputElement | null>(null);
-  const fileUrl = (id: string) => `/api/files/${id}`;
+
   const toSrc = (val: string) =>
     /^https?:\/\//i.test(val) ? val : fileUrl(val);
+
   function pickImages() {
+    if (disabled) return;
     fileRef.current?.click();
   }
+
   function onSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
     if (!files.length) return;
@@ -52,20 +57,26 @@ export function PostEditForm({
     ]);
     e.target.value = "";
   }
+
   function removeExisting(i: number) {
+    if (disabled) return;
     setExistingIds((prev) => prev.filter((_, idx) => idx !== i));
   }
+
   function removeNew(i: number) {
+    if (disabled) return;
     setNewFiles((prev) => prev.filter((_, idx) => idx !== i));
     setNewPreviews((prev) => prev.filter((_, idx) => idx !== i));
   }
 
-  const submitNow = () =>
+  const submitNow = () => {
+    if (disabled) return;
     onSubmit?.({ title, content, published, existingIds, newFiles });
+  };
 
   useEffect(() => {
     if (registerSubmit) registerSubmit(submitNow);
-  }, [registerSubmit, title, content, published, existingIds, newFiles]);
+  }, [registerSubmit, title, content, published, existingIds, newFiles, disabled]);
 
   return (
     <div className="space-y-4 text-[13px]">
@@ -77,6 +88,7 @@ export function PostEditForm({
           className="w-full rounded-md border border-gray-300 px-3 py-2 text-[13px]"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
+          disabled={disabled} 
         />
       </div>
 
@@ -89,6 +101,7 @@ export function PostEditForm({
           className="w-full rounded-md border border-gray-300 px-3 py-2 text-[13px]"
           value={content}
           onChange={(e) => setContent(e.target.value)}
+          disabled={disabled} 
         />
       </div>
 
@@ -97,8 +110,14 @@ export function PostEditForm({
           <div className="text-[11px] font-medium text-gray-700">Images</div>
           <button
             type="button"
-            className="px-2.5 py-1.5 text-[12px] rounded-md bg-gray-900 text-white hover:bg-gray-800"
+            className={[
+              "px-2.5 py-1.5 text-[12px] rounded-md text-white transition",
+              disabled
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-gray-900 hover:bg-gray-800",
+            ].join(" ")}
             onClick={pickImages}
+            disabled={disabled} 
           >
             + Add Image
           </button>
@@ -127,7 +146,13 @@ export function PostEditForm({
                 />
                 <button
                   type="button"
-                  className="absolute top-1 right-1 bg-black/70 text-white text-[11px] rounded px-2 py-0.5"
+                  disabled={disabled} 
+                  className={[
+                    "absolute top-1 right-1 text-[11px] rounded px-2 py-0.5",
+                    disabled
+                      ? "bg-black/40 text-gray-200 cursor-not-allowed"
+                      : "bg-black/70 text-white",
+                  ].join(" ")}
                   onClick={() => removeExisting(i)}
                 >
                   Remove
@@ -152,7 +177,13 @@ export function PostEditForm({
                 />
                 <button
                   type="button"
-                  className="absolute top-1 right-1 bg-black/70 text-white text-[11px] rounded px-2 py-0.5"
+                  disabled={disabled} 
+                  className={[
+                    "absolute top-1 right-1 text-[11px] rounded px-2 py-0.5",
+                    disabled
+                      ? "bg-black/40 text-gray-200 cursor-not-allowed"
+                      : "bg-black/70 text-white",
+                  ].join(" ")}
                   onClick={() => removeNew(i)}
                 >
                   Remove
@@ -169,8 +200,12 @@ export function PostEditForm({
             id="publishToggle"
             checked={published}
             onChange={(e) => setPublished(e.target.checked)}
+            disabled={disabled}
           />
-          <label htmlFor="publishToggle" className="text-gray-700 leading-none">
+          <label
+            htmlFor="publishToggle"
+            className="text-gray-700 leading-none"
+          >
             Published
           </label>
         </div>

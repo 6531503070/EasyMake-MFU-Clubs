@@ -12,6 +12,9 @@ type ActionDialogProps = {
   onClose: () => void;
   onConfirm?: () => void;
   children?: React.ReactNode;
+
+  // ✅ เพิ่มตัวนี้
+  confirmDisabled?: boolean;
 };
 
 export function ActionDialog({
@@ -24,6 +27,7 @@ export function ActionDialog({
   onClose,
   onConfirm,
   children,
+  confirmDisabled = false, // ✅ default = false
 }: ActionDialogProps) {
   const isViewOnly = mode === "view";
 
@@ -52,12 +56,7 @@ export function ActionDialog({
               animate={{ scale: 1, y: 0, opacity: 1 }}
               exit={{ scale: 0.95, y: 20, opacity: 0 }}
               transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-              className="
-                w-full max-w-2xl bg-white text-gray-900
-                shadow-[0_24px_80px_-10px_rgba(0,0,0,0.4)]
-                border border-gray-200
-                rounded-2xl overflow-hidden
-              "
+              className="w-full max-w-2xl bg-white text-gray-900 shadow-[0_24px_80px_-10px_rgba(0,0,0,0.4)] border border-gray-200 rounded-2xl overflow-hidden"
             >
               {/* Header */}
               <div className="px-6 pt-5 pb-3 border-b border-gray-100">
@@ -89,12 +88,20 @@ export function ActionDialog({
 
                 {!isViewOnly && (
                   <button
-                    onClick={onConfirm}
-                    className={`px-3 py-1.5 text-[13px] rounded-md font-medium ${
-                      confirmTone === "danger"
-                        ? "bg-red-600 text-white hover:bg-red-500"
-                        : "bg-gray-900 text-white hover:bg-gray-800"
-                    }`}
+                    onClick={confirmDisabled ? undefined : onConfirm}
+                    disabled={confirmDisabled}
+                    className={`px-3 py-1.5 text-[13px] rounded-md font-medium
+                      ${
+                        confirmTone === "danger"
+                          ? "bg-red-600 text-white hover:bg-red-500"
+                          : "bg-gray-900 text-white hover:bg-gray-800"
+                      }
+                      ${
+                        confirmDisabled
+                          ? "opacity-60 cursor-not-allowed hover:bg-gray-900 hover:bg-red-600"
+                          : ""
+                      }
+                    `}
                   >
                     {confirmLabel}
                   </button>
