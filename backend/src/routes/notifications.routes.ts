@@ -8,15 +8,22 @@ const router = Router();
 router.get(
   "/",
   authRequired,
-  requireRole("user", "club-leader", "super-admin"),
+  requireRole("user", "club-leader","co-leader", "super-admin"),
   NotificationController.listMyNotifications
 );
 
 router.patch(
   "/:id/read",
   authRequired,
-  requireRole("user", "club-leader", "super-admin"),
+  requireRole("user", "club-leader","co-leader", "super-admin"),
   NotificationController.markAsRead
+);
+
+router.patch(
+  "/read-all",
+  authRequired,
+  requireRole("user", "club-leader", "super-admin", "co-leader"),
+  NotificationController.markAllAsRead
 );
 
 export default router;

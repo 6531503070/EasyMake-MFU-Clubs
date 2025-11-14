@@ -172,7 +172,7 @@ async function createActivity(
     body:
       data.subtitle ||
       (data.description ? String(data.description).slice(0, 120) : ""),
-    link_url: `/activities/${activity._id}`,
+    link_url: `/user/activities`,
   });
   return activity;
 }
@@ -226,7 +226,7 @@ async function updateStatus(
       type: "activity_update",
       title: `Activity cancelled: ${activity.title}`,
       body: `An activity from ${club.name} was cancelled.`,
-      link_url: `/activities/${activity._id}`,
+      link_url: `/user/activities`,
     });
   }
   return activity;

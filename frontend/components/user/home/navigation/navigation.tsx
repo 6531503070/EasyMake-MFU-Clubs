@@ -8,8 +8,8 @@ import { Menu, X, User, Bell } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { getCookie } from "cookies-next";
-import NotificationMenu from "./NotificationMenu";
 import UserMenu from "./UserMenu";
+import { NotificationBellContainer } from "../../notifications/NotificationBellContainer";
 
 export function Navigation() {
   const pathname = usePathname();
@@ -85,7 +85,7 @@ export function Navigation() {
             {hasToken ? (
               <>
                 <div className="hidden md:flex">
-                  <NotificationMenu />
+                  <NotificationBellContainer />
                 </div>
                 <div className="hidden md:flex">
                   <UserMenu />

@@ -38,7 +38,6 @@ export default function ActivitiesPage() {
   const [followedClubIds, setFollowedClubIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // โหลด feed + clubs ที่ follow
   useEffect(() => {
     (async () => {
       try {
@@ -50,9 +49,7 @@ export default function ActivitiesPage() {
 
         setPosts(postFeed);
         setActivities(actFeed);
-        setFollowedClubIds(
-          (following || []).map((c) => String(c._id))
-        );
+        setFollowedClubIds((following || []).map((c) => String(c._id)));
       } catch (err) {
         console.error("load feed error", err);
       } finally {
@@ -61,29 +58,26 @@ export default function ActivitiesPage() {
     })();
   }, []);
 
-  // reset pagination เวลาเปลี่ยน mode
   useEffect(() => {
     setVisiblePostsCount(5);
     setVisibleEventsCount(4);
   }, [filterMode]);
 
-  // filter posts ตาม mode
   const filteredPosts = useMemo(() => {
     if (filterMode === "following") {
       if (followedClubIds.length === 0) return [];
-      return posts.filter((p) =>
-        p.club_id && followedClubIds.includes(String(p.club_id))
+      return posts.filter(
+        (p) => p.club_id && followedClubIds.includes(String(p.club_id))
       );
     }
     return posts;
   }, [posts, filterMode, followedClubIds]);
 
-  // filter activities ตาม mode
   const filteredActivities = useMemo(() => {
     if (filterMode === "following") {
       if (followedClubIds.length === 0) return [];
-      return activities.filter((a) =>
-        a.club_id && followedClubIds.includes(String(a.club_id))
+      return activities.filter(
+        (a) => a.club_id && followedClubIds.includes(String(a.club_id))
       );
     }
     return activities;
@@ -97,9 +91,7 @@ export default function ActivitiesPage() {
     visibleEventsCount < filteredActivities.length;
 
   const handleLoadMore = () => {
-    setVisiblePostsCount((prev) =>
-      Math.min(prev + 5, filteredPosts.length)
-    );
+    setVisiblePostsCount((prev) => Math.min(prev + 5, filteredPosts.length));
     setVisibleEventsCount((prev) =>
       Math.min(prev + 4, filteredActivities.length)
     );

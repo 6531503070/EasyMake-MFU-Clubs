@@ -43,13 +43,14 @@ async function createPost(
 
   const club = await ClubModel.findById(clubId);
   if (!club) throw new HttpError(404, "Club not found");
-  if (club.status === "suspended") throw new HttpError(403, "Club is suspended");
+  if (club.status === "suspended")
+    throw new HttpError(403, "Club is suspended");
 
   await assertClubStaffForClub(authorUserId, clubId);
 
   const post = await ClubPostModel.create({
-    club_id: clubId,                    // ← String
-    author_user_id: authorUserId,       // ← String
+    club_id: clubId, // ← String
+    author_user_id: authorUserId, // ← String
     title: data.title,
     content: data.content || "",
     images: data.images || [],
@@ -61,7 +62,7 @@ async function createPost(
     type: "new_post",
     title: data.title,
     body: data.content?.slice(0, 120),
-    link_url: `/clubs/${clubId}/posts/${post._id}`,
+    link_url: `/user/club/${clubId}`,
   });
 
   return post;
@@ -80,22 +81,29 @@ async function listPostsForClubStaff(staffUserId: string, clubId: string) {
   const posts = await ClubPostModel.find({
     club_id: clubId,
     is_deleted: false,
-  }).sort({ updated_at: -1 }).lean();
+  })
+    .sort({ updated_at: -1 })
+    .lean();
 
-  return posts.map(p => ({
+  return posts.map((p) => ({
     _id: p._id,
     title: p.title,
     published: p.published,
     updated_at: p.updated_at,
-    images: p.images ?? [],        
-    content: p.content ?? "",     
+    images: p.images ?? [],
+    content: p.content ?? "",
   }));
 }
 
 async function updatePost(
   postId: string,
   actorUserId: string,
-  data: { title?: string; content?: string; published?: boolean; images?: string[] }
+  data: {
+    title?: string;
+    content?: string;
+    published?: boolean;
+    images?: string[];
+  }
 ) {
   const post = await ClubPostModel.findById(postId);
   if (!post) throw new HttpError(404, "Post not found");
@@ -111,7 +119,11 @@ async function updatePost(
   return post;
 }
 
-async function deletePost(postId: string, actorUserId: string, isSuperAdmin: boolean) {
+async function deletePost(
+  postId: string,
+  actorUserId: string,
+  isSuperAdmin: boolean
+) {
   const post = await ClubPostModel.findById(postId);
   if (!post) throw new HttpError(404, "Post not found");
 
@@ -134,7 +146,9 @@ async function toggleLike(postId: string, userId: string) {
   if (!post) throw new HttpError(404, "Post not found");
 
   const uid = String(userId);
-  const currentLikes = Array.isArray((post as any).likes) ? (post as any).likes : [];
+  const currentLikes = Array.isArray((post as any).likes)
+    ? (post as any).likes
+    : [];
   const hasLiked = currentLikes.includes(uid);
 
   let nextLikes: string[];

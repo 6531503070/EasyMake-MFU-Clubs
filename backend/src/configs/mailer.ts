@@ -19,6 +19,7 @@ export async function sendEmail(to: string, subject: string, html: string) {
       subject,
       html,
     });
+    console.log("[MAIL] sent to", to, subject);
   } catch (err) {
     console.error("[MAIL] failed:", err);
   }

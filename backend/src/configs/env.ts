@@ -1,6 +1,7 @@
 export const env = {
   PORT: process.env.PORT || 8081,
   PUBLIC_API_BASE: process.env.PUBLIC_API_BASE || "http://localhost:8081",
+  PUBLIC_WEB_BASE: process.env.PUBLIC_WEB_BASE || "http://localhost:3000",
   MONGO_URI: process.env.MONGO_URI || "mongodb://localhost:27017/easymake",
   JWT_SECRET: process.env.JWT_SECRET || "dev-secret",
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID as string,
