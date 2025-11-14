@@ -32,8 +32,8 @@ export default function HomePage() {
       <Navigation />
       <BackgroundDecor />
       <HeroSection />
-      <FeaturesSection />
       <FeaturedClubsSection clubs={clubs} loading={loading} error={error} />
+      <FeaturesSection />
       <div className="relative z-10">
         <Footer />
       </div>

@@ -115,6 +115,18 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+.typing-cursor::after {
+  content: "|";
+  margin-left: 4px;
+  animation: blink 0.7s infinite;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  50.01%, 100% { opacity: 0; }
+}
+
+
 @layer base {
   * {
     @apply border-border;
