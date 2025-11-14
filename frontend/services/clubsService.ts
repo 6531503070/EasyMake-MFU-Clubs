@@ -72,6 +72,7 @@ export type FollowingClub = {
   name: string;
   cover_image_url?: string;
   tagline?: string;
+  followerCount?: number;
 };
 
 export async function getAllClubs(): Promise<{ clubs: ClubApiRow[] }> {

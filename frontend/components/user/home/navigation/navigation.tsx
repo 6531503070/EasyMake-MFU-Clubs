@@ -33,8 +33,8 @@ export function Navigation() {
         <div className="relative flex items-center justify-between h-16">
           {/* Logo */}
           <div className="shrink-0 z-10">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="relative w-10 h-10">
+            <Link href="/user" className="flex items-center gap-2">
+              <div className="relative w-20 h-20">
                 <Image
                   src="/brand-icon.png"
                   alt="EasyMake Logo"
@@ -43,9 +43,6 @@ export function Navigation() {
                   priority
                 />
               </div>
-              <span className="font-semibold text-lg hidden sm:inline">
-                Club Hub
-              </span>
             </Link>
           </div>
 

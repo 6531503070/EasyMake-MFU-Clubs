@@ -42,6 +42,32 @@ export type ActivityFeedItem = ActivityApi & {
   registered?: number;
 };
 
+export type MyActivityRegistration = {
+  _id: string;
+  activity_id: string;
+  status: "registered" | "checked-in" | "cancelled";
+  checkin_at?: string;
+  cancelled_at?: string;
+  created_at: string;
+  activity: {
+    _id: string;
+    title: string;
+    subtitle?: string;
+    start_time: string;
+    end_time?: string;
+    location?: string;
+    images: string[];
+    status: "published" | "cancelled";
+    club_id: string;
+  } | null;
+  club: {
+    _id: string;
+    name: string;
+    cover_image_url?: string;
+    tagline?: string;
+  } | null;
+};
+
 export async function getClubActivities(clubId: string): Promise<ClubActivityListItem[]> {
   const data = await authedFetch(`/clubs/${clubId}/activities/mine`, { method: "GET" });
   const list = (data.activities || []) as any[];
@@ -148,8 +174,11 @@ export async function unregisterFromActivity(activityId: string) {
   });
 }
 
-export async function listMyRegistrations() {
-  return authedFetch(`/activities/my/registrations`, { method: "GET" });
+export async function listMyRegistrations(): Promise<MyActivityRegistration[]> {
+  const data = await authedFetch(`/activities/my/registrations`, {
+    method: "GET",
+  });
+  return (data.registrations || []) as MyActivityRegistration[];
 }
 
 export async function getPublicActivitiesFeed(): Promise<ActivityFeedItem[]> {

@@ -202,4 +202,11 @@ router.post(
   ClubController.unfollowClub
 );
 
+router.get(
+  "/me/following/clubs",
+  authRequired,
+  requireRole("user", "club-leader", "co-leader", "super-admin"),
+  ClubController.getMyFollowingClubs
+);
+
 export default router;

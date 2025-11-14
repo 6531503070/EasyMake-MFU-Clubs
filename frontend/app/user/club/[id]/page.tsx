@@ -77,7 +77,7 @@ export default function ClubDetailPage() {
 
         try {
           const regsRes = await listMyRegistrations();
-          const regs = (regsRes.registrations || regsRes) as any[];
+          const regs = regsRes ?? [];
 
           regs?.forEach((r) => {
             const actId = String(r.activity_id);

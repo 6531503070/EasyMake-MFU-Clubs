@@ -15,7 +15,6 @@ export function useNotifications() {
   const [items, setItems] = useState<NotificationUIItem[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // 1) โหลด notifications ชุดแรกจาก API
   useEffect(() => {
     let active = true;
 
@@ -49,7 +48,6 @@ export function useNotifications() {
     };
   }, []);
 
-  // 2) ต่อ socket.io สำหรับ real-time "notification:new"
   useEffect(() => {
     const token = getCookie("token") as string | undefined;
     if (!token) {
@@ -60,7 +58,7 @@ export function useNotifications() {
 
     try {
       const url = new URL(BASE_URL);
-      const socketUrl = url.origin; // ex: http://localhost:8081
+      const socketUrl = url.origin;
 
       socket = io(socketUrl, {
         transports: ["websocket"],
@@ -68,11 +66,9 @@ export function useNotifications() {
       });
 
       socket.on("connect", () => {
-        console.log("[SOCKET] notifications connected", socket?.id);
       });
 
       socket.on("notification:new", (payload: any) => {
-        console.log("[SOCKET] notification:new", payload);
         setItems((prev) => [
           {
             id: payload.id,
@@ -89,7 +85,6 @@ export function useNotifications() {
       });
 
       socket.on("disconnect", () => {
-        console.log("[SOCKET] notifications disconnected");
       });
     } catch (err) {
       console.error("[SOCKET] notification init error", err);
@@ -107,7 +102,6 @@ export function useNotifications() {
     [items]
   );
 
-  // 3) กดทีละ item = mark read
   const handleItemClick = async (item: NotificationUIItem) => {
     if (item.is_read) return;
 
@@ -121,7 +115,6 @@ export function useNotifications() {
     }
   };
 
-  // 4) mark all read
   const markAllAsRead = async () => {
     const unread = items.filter((n) => !n.is_read);
     if (!unread.length) return;

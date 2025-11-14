@@ -362,14 +362,62 @@ async function listMyRegistrations(userId: string) {
     "_id activity_id status checkin_at cancelled_at created_at"
   ).lean();
 
-  return regs.map((r: any) => ({
-    _id: r._id,
-    activity_id: r.activity_id,
-    status: r.status,
-    checkin_at: r.checkin_at,
-    cancelled_at: r.cancelled_at,
-    created_at: r.created_at,
-  }));
+  if (regs.length === 0) return [];
+
+  const activityIds = [...new Set(regs.map((r: any) => String(r.activity_id)))];
+
+  const activities = await ActivityModel.find(
+    { _id: { $in: activityIds } },
+    "_id title subtitle description start_time end_time location images status club_id"
+  ).lean();
+
+  const clubIds = [...new Set(activities.map((a: any) => String(a.club_id)))];
+
+  const clubs = await ClubModel.find(
+    { _id: { $in: clubIds } },
+    "_id name cover_image_url tagline"
+  ).lean();
+
+  const actMap = new Map<string, any>();
+  activities.forEach((a: any) => actMap.set(String(a._id), a));
+
+  const clubMap = new Map<string, any>();
+  clubs.forEach((c: any) => clubMap.set(String(c._id), c));
+
+  return regs.map((r: any) => {
+    const a = actMap.get(String(r.activity_id));
+    const c = a ? clubMap.get(String(a.club_id)) : null;
+
+    return {
+      _id: r._id,
+      activity_id: r.activity_id,
+      status: r.status,
+      checkin_at: r.checkin_at,
+      cancelled_at: r.cancelled_at,
+      created_at: r.created_at,
+      activity: a
+        ? {
+            _id: a._id,
+            title: a.title,
+            subtitle: a.subtitle || "",
+            start_time: a.start_time,
+            end_time: a.end_time,
+            location: a.location || "",
+            images: a.images || [],
+            status: a.status,
+            club_id: a.club_id,
+          }
+        : null,
+      club: c
+        ? {
+            _id: c._id,
+            name: c.name,
+            cover_image_url: c.cover_image_url || "",
+            tagline: c.tagline || "",
+          }
+        : null,
+    };
+  });
 }
 
 async function listPublicFeed() {

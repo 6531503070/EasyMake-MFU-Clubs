@@ -651,7 +651,38 @@ async function getFollowStatus(userId: string, clubId: string) {
   return !!rel;
 }
 
+async function getMyFollowingClubs(userId: string) {
+  const rels = await ClubFollowerModel.find(
+    { user_id: userId, role_at_club: "member" },
+    "club_id"
+  ).lean();
 
+  if (rels.length === 0) return [];
+
+  const clubIds = rels.map((r) => r.club_id);
+
+  const clubs = await ClubModel.find(
+    { _id: { $in: clubIds } },
+    "_id name tagline cover_image_url status"
+  ).lean();
+
+  const counts = await ClubFollowerModel.aggregate([
+    { $match: { club_id: { $in: clubIds }, role_at_club: "member" } },
+    { $group: { _id: "$club_id", total: { $sum: 1 } } },
+  ]);
+
+  const countMap = new Map<string, number>();
+  counts.forEach((c: any) => countMap.set(String(c._id), c.total));
+
+  return clubs.map((c: any) => ({
+    _id: c._id,
+    name: c.name,
+    tagline: c.tagline || "",
+    cover_image_url: c.cover_image_url || "",
+    status: c.status,
+    followerCount: countMap.get(String(c._id)) || 0,
+  }));
+}
 
 export const ClubService = {
   createClub,
@@ -670,4 +701,5 @@ export const ClubService = {
   followClub,
   unfollowClub,
   getFollowStatus,
+  getMyFollowingClubs,
 };
