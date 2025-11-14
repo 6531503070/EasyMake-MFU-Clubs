@@ -8,12 +8,7 @@ import { upload } from "../middleware/upload";
 const router = Router();
 
 // GET /api/posts/feed
-router.get(
-  "/feed",
-  authRequired,
-  requireRole("user", "club-leader", "co-leader", "super-admin"),
-  PostController.listPostsFeedPublic
-);
+router.get("/feed", PostController.listPostsFeedPublic);
 
 // toggle like
 router.post(
@@ -29,7 +24,7 @@ router.post(
   authRequired,
   requireRole("club-leader", "co-leader", "super-admin"),
   requireClubStaff,
-  upload.array("images", 10), 
+  upload.array("images", 10),
   PostController.createPost
 );
 // manage list
@@ -63,6 +58,5 @@ router.patch(
   ]),
   PostController.updatePost
 );
-
 
 export default router;

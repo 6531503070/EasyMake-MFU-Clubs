@@ -28,6 +28,19 @@ import { FeedFilterToggle } from "@/components/user/activities/FeedFilterToggle"
 
 type FilterMode = "all" | "following";
 
+const LOGIN_PATH = "/user/auth/login"; 
+
+function isLoggedIn() {
+  if (typeof document === "undefined") return false;
+  return document.cookie.split(";").some((c) => c.trim().startsWith("token="));
+}
+
+function redirectToLogin() {
+  if (typeof window !== "undefined") {
+    window.location.href = LOGIN_PATH;
+  }
+}
+
 export default function ActivitiesPage() {
   const [filterMode, setFilterMode] = useState<FilterMode>("all");
   const [visiblePostsCount, setVisiblePostsCount] = useState(5);
@@ -40,21 +53,40 @@ export default function ActivitiesPage() {
 
   useEffect(() => {
     (async () => {
-      try {
-        const [postFeed, actFeed, following] = await Promise.all([
-          getPublicPostsFeed(),
-          getPublicActivitiesFeed(),
-          getMyFollowingClubs().catch(() => [] as FollowingClub[]),
-        ]);
+      setLoading(true);
 
-        setPosts(postFeed);
-        setActivities(actFeed);
-        setFollowedClubIds((following || []).map((c) => String(c._id)));
+      let postFeed: PublicPostRow[] = [];
+      let actFeed: ActivityFeedItem[] = [];
+      let following: FollowingClub[] = [];
+
+      try {
+        postFeed = await getPublicPostsFeed();
       } catch (err) {
-        console.error("load feed error", err);
-      } finally {
-        setLoading(false);
+        console.error("load posts feed error", err);
+        postFeed = [];
       }
+
+      try {
+        actFeed = await getPublicActivitiesFeed();
+      } catch (err) {
+        console.error("load activities feed error", err);
+        actFeed = [];
+      }
+
+      if (isLoggedIn()) {
+        try {
+          following = await getMyFollowingClubs();
+        } catch (err) {
+          console.error("load following clubs error", err);
+          following = [];
+        }
+      }
+
+      setPosts(postFeed);
+      setActivities(actFeed);
+      setFollowedClubIds(following.map((c) => String(c._id)));
+
+      setLoading(false);
     })();
   }, []);
 
@@ -99,6 +131,11 @@ export default function ActivitiesPage() {
 
   // like post
   const handleToggleLike = async (postId: string) => {
+    if (!isLoggedIn()) {
+      redirectToLogin();
+      return;
+    }
+
     try {
       const result = await togglePostLike(postId);
       setPosts((prev) =>
@@ -108,7 +145,12 @@ export default function ActivitiesPage() {
             : p
         )
       );
-    } catch (err) {
+    } catch (err: any) {
+      const msg = String(err?.message || "");
+      if (msg.toLowerCase().includes("unauthorized") || msg.includes("401")) {
+        redirectToLogin();
+        return;
+      }
       console.error("toggle like error", err);
     }
   };

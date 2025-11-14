@@ -167,7 +167,7 @@ async function toggleLike(postId: string, userId: string) {
   };
 }
 
-async function listPublicFeed(userId: string) {
+async function listPublicFeed(userId?: string) {
   const posts = await ClubPostModel.find(
     { is_deleted: false, published: true },
     "_id club_id title content images created_at likes"
@@ -186,11 +186,13 @@ async function listPublicFeed(userId: string) {
   const clubMap = new Map<string, any>();
   clubs.forEach((c: any) => clubMap.set(String(c._id), c));
 
+  const userKey = userId ? String(userId) : null;
+
   return posts.map((p: any) => {
     const club = clubMap.get(String(p.club_id));
     const likesArr = Array.isArray(p.likes) ? p.likes : [];
     const likeCount = likesArr.length;
-    const likedByMe = likesArr.includes(String(userId));
+    const likedByMe = userKey ? likesArr.includes(userKey) : false;
 
     return {
       _id: p._id,

@@ -31,6 +31,19 @@ import ClubEventsList from "@/components/user/clubs/ClubEventList";
 import { ConfirmDialog } from "@/components/user/ConfirmDialog";
 import { CornerToast } from "@/components/user/CornerToast";
 
+const LOGIN_PATH = "/user/auth/login";
+
+function isLoggedIn() {
+  if (typeof document === "undefined") return false;
+  return document.cookie.split(";").some((c) => c.trim().startsWith("token="));
+}
+
+function redirectToLogin() {
+  if (typeof window !== "undefined") {
+    window.location.href = LOGIN_PATH;
+  }
+}
+
 export default function ClubDetailPage() {
   const params = useParams();
   const clubId = params.id as string;
@@ -64,42 +77,44 @@ export default function ClubDetailPage() {
           getClubPublicActivities(clubId),
         ]);
 
-        // ====== follow status ======
-        let isFollowing = false;
-        try {
-          const fs = await getClubFollowStatus(clubId);
-          isFollowing = fs.isFollowing;
-        } catch {}
+        const rawActivities: any[] = aRes.activities || [];
 
-        // ====== my registrations (active + locked) ======
+        let isFollowing = false;
         const myRegIds = new Set<string>();
         const lockedIds = new Set<string>();
 
-        try {
-          const regsRes = await listMyRegistrations();
-          const regs = regsRes ?? [];
+        if (isLoggedIn()) {
+          try {
+            const [fs, regsRes] = await Promise.all([
+              getClubFollowStatus(clubId),
+              listMyRegistrations(),
+            ]);
 
-          regs?.forEach((r) => {
-            const actId = String(r.activity_id);
+            isFollowing = fs.isFollowing;
 
-            if (r.status !== "cancelled") {
-              myRegIds.add(actId);
-            }
+            const regs = regsRes ?? [];
+            regs.forEach((r) => {
+              const actId = String(r.activity_id);
+              if (r.status !== "cancelled") {
+                myRegIds.add(actId);
+              }
+              if (r.status === "cancelled") {
+                lockedIds.add(actId);
+              }
+            });
+          } catch (err) {
+            console.error(
+              "[ClubDetailPage] optional follow/registrations fetch failed",
+              err
+            );
+          }
+        }
 
-            if (r.status === "cancelled") {
-              lockedIds.add(actId);
-            }
-          });
-        } catch {}
-
-        // ====== enrich activities ======
-        const enrichedActs: PublicActivity[] = (aRes.activities || []).map(
-          (act: any) => ({
-            ...act,
-            is_registered: myRegIds.has(String(act._id)),
-            registration_locked_for_me: lockedIds.has(String(act._id)),
-          })
-        );
+        const enrichedActs: PublicActivity[] = rawActivities.map((act) => ({
+          ...act,
+          is_registered: myRegIds.has(String(act._id)),
+          registration_locked_for_me: lockedIds.has(String(act._id)),
+        }));
 
         setClub(cRes.club);
         setActivities(enrichedActs);
@@ -115,6 +130,11 @@ export default function ClubDetailPage() {
 
   // ======= handler: follow / unfollow =======
   const handleToggleFollow = async () => {
+    if (!isLoggedIn()) {
+      redirectToLogin();
+      return;
+    }
+
     try {
       setFollowLoading(true);
 
@@ -135,7 +155,13 @@ export default function ClubDetailPage() {
         setFollowing((prev) => !prev);
       }
     } catch (e: any) {
-      setErrMsg(e?.message || "Failed to update follow status");
+      const msg = e?.message || "";
+      if (msg.toLowerCase().includes("unauthorized") || msg.includes("401")) {
+        redirectToLogin();
+        return;
+      }
+
+      setErrMsg(msg || "Failed to update follow status");
       setErrOpen(true);
     } finally {
       setFollowLoading(false);
@@ -147,6 +173,11 @@ export default function ClubDetailPage() {
     activityId: string,
     currentlyRegistered: boolean
   ) => {
+    if (!isLoggedIn()) {
+      redirectToLogin();
+      return;
+    }
+
     setPendingAction({ activityId, currentlyRegistered });
     setConfirmOpen(true);
   };
@@ -181,7 +212,6 @@ export default function ClubDetailPage() {
       setRegisterLoadingId(activityId);
 
       if (currentlyRegistered) {
-        // CANCEL
         await unregisterFromActivity(activityId);
 
         setActivities((prev) =>
@@ -202,7 +232,6 @@ export default function ClubDetailPage() {
         );
         setToastOpen(true);
       } else {
-        // REGISTER
         await registerToActivity(activityId);
 
         setActivities((prev) =>
@@ -223,6 +252,14 @@ export default function ClubDetailPage() {
     } catch (e: any) {
       const msg =
         e?.message || "Failed to update registration. Please try again later.";
+
+      if (
+        msg.toLowerCase().includes("unauthorized") ||
+        msg.includes("401 Unauthorized")
+      ) {
+        redirectToLogin();
+        return;
+      }
 
       if (!currentlyRegistered && msg.includes("later cancelled")) {
         setActivities((prev) =>
@@ -247,6 +284,7 @@ export default function ClubDetailPage() {
     <div className="min-h-screen bg-background">
       <Navigation />
 
+      {/* hero section + follow button (เหมือนเดิม) */}
       <section className="relative h-[60vh] min-h-[480px] overflow-hidden pt-16">
         <div className="absolute inset-0">
           <Image
@@ -317,6 +355,7 @@ export default function ClubDetailPage() {
         </div>
       </section>
 
+      {/* about / events */}
       <section className="py-12">
         <div className="container mx-auto px-4">
           <Tabs defaultValue="about" className="max-w-6xl mx-auto">
@@ -353,7 +392,6 @@ export default function ClubDetailPage() {
                     )}
                   </div>
 
-                  {/* ===== INFO SECTION ===== */}
                   <div className="pt-6 border-t border-border space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
@@ -375,7 +413,6 @@ export default function ClubDetailPage() {
                       </div>
                     </div>
 
-                    {/* ===== CONTACT SECTION ===== */}
                     <div className="space-y-2">
                       <div className="text-sm text-muted-foreground">
                         Contact
