@@ -1,12 +1,12 @@
 import "express";
+import "multer";
 
-declare module "express-serve-static-core" {
-  interface Request {
-    file?: {
-      buffer: Buffer;
-      mimetype: string;
-      originalname: string;
-      size: number;
-    };
+declare global {
+  namespace Express {
+    interface Request {
+      file?: Express.Multer.File;
+    }
   }
 }
+
+export {};
